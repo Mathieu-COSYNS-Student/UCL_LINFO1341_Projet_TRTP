@@ -8,7 +8,7 @@
 
 
 CC							:=	gcc
-CFLAGS					:=	#-pedantic -Wvla -Wall -Werror
+CFLAGS					:=	-pedantic -Wvla -Wall -Werror -Wextra -Wshadow
 LDFLAGS					:=	
 
 PHONY						:=	all clean
