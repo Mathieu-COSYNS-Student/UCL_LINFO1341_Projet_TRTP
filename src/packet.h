@@ -23,6 +23,16 @@
 
 #define PKT_TIMESTAMP 0xdeadbeef
 
+struct __attribute__((__packed__)) pkt {
+    uint8_t type_tr_window;
+    uint16_t length;
+    uint8_t seqnum;
+    uint32_t timestamp;
+    uint32_t crc1;
+    char payload[MAX_PAYLOAD_SIZE];
+    uint32_t crc2;
+};
+
 /* Raccourci pour struct pkt */
 typedef struct pkt pkt_t;
 

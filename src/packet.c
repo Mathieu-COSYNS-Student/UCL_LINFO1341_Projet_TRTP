@@ -6,16 +6,6 @@
 #include <string.h>
 #include <zlib.h>
 
-struct __attribute__((__packed__)) pkt {
-    uint8_t type_tr_window;
-    uint16_t length;
-    uint8_t seqnum;
-    uint32_t timestamp;
-    uint32_t crc1;
-    char payload[MAX_PAYLOAD_SIZE];
-    uint32_t crc2;
-};
-
 /* Extra code */
 int pkt_is_ack_nack(const pkt_t* pkt)
 {
@@ -29,7 +19,7 @@ uint32_t calc_header_crc(const char* buf, ssize_t len)
     memcpy(bufcpy, buf, len);
 
     bufcpy[0] = buf[0] & 0xdf;
-    uLong crc = htonl(crc32(0L, (Bytef*)bufcpy, len));
+    uLong crc = htonl(crc32(0L, (Bytef*)bufcpy, len));// need to tranform it in network byte
 
     return crc;
 }

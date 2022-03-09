@@ -1,5 +1,8 @@
+#include <string.h>
+
 #include "../src/packet.h"
 #include "../src/xxd.h"
+#include "../src/log.h"
 
 int main()
 {
@@ -18,7 +21,12 @@ int main()
 
     pkt_encode(pkt, buf, &len);
 
-    hexDump(0, buf, len);
+    // hexDump(0, buf, len);
+
+    pkt_t* new_pkt = pkt_new();
+    pkt_decode(buf, len, new_pkt);
+
+    ASSERT(memcmp(pkt, new_pkt, sizeof(*pkt)));
 
     pkt_del(pkt);
     return 0;
