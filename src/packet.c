@@ -1,4 +1,4 @@
-#include "packet_interface.h"
+#include "packet.h"
 
 /* Extra #includes */
 #include <arpa/inet.h>

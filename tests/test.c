@@ -1,5 +1,5 @@
-#include "packet_interface.h"
-#include "xxd.h"
+#include "../src/packet.h"
+#include "../src/xxd.h"
 
 int main()
 {
