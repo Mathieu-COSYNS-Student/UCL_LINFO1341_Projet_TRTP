@@ -24,9 +24,9 @@ SENDER						:= sender
 RECEIVER					:= receiver
 TEST							:= test
 
-PHONY							:= all clean $(SENDER) $(RECEIVER) $(TEST) tests
+PHONY							:= all clean debug zip $(SENDER) $(RECEIVER) $(TEST) tests
 
-all: $(SENDER) $(RECEIVER)
+all: $(SENDER) $(RECEIVER) $(TEST)
 
 $(SENDER): $(SENDER_OBJECTS) $(COMMON_OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
@@ -60,6 +60,6 @@ zip:
 
 
 clean:
-	@$(RM) -rv src/*.o test/*.o  $(SENDER) $(RECEIVER) $(TEST) input_file *.log
+	@$(RM) -rv src/*.o tests/*.o  $(SENDER) $(RECEIVER) $(TEST) input_file *.log
 
 .PHONY = $(PHONY)

@@ -1,6 +1,7 @@
 #ifndef __PACKET_INTERFACE_H_
 #define __PACKET_INTERFACE_H_
 
+#include <stdbool.h>
 #include <stddef.h> /* size_t */
 #include <stdint.h> /* uintx_t */
 #include <stdio.h> /* ssize_t */
@@ -107,6 +108,9 @@ pkt_status_code pkt_decode(const char* data, const size_t len, pkt_t* pkt);
  *         le buffer est trop petit.
  */
 pkt_status_code pkt_encode(const pkt_t*, char* buf, size_t* len);
+
+/* check if the packet has a payload and the payload is applicable */
+bool pkt_has_payload(const pkt_t* pkt);
 
 /* Accesseurs pour les champs toujours présents du paquet.
  * Les valeurs renvoyées sont toutes dans l'endianness native

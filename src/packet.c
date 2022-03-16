@@ -15,11 +15,11 @@ int pkt_is_ack_nack(const pkt_t* pkt)
 
 uint32_t calc_header_crc(const char* buf, ssize_t len)
 {
-    char bufcpy[PKT_MAX_HEADERLEN - 4];
+    char bufcpy[PKT_MAX_HEADERLEN - sizeof(uint32_t)];
     memcpy(bufcpy, buf, len);
 
     bufcpy[0] = buf[0] & 0xdf;
-    uLong crc = htonl(crc32(0L, (Bytef*)bufcpy, len));// need to tranform it in network byte
+    uLong crc = htonl(crc32(0L, (Bytef*)bufcpy, len)); // need to tranform it in network byte
 
     return crc;
 }
@@ -77,13 +77,14 @@ pkt_status_code pkt_decode(const char* data, const size_t len, pkt_t* pkt)
         return E_TR;
 
     ssize_t header_len = predict_header_length(pkt);
-    uint32_t crc1 = calc_header_crc(data, header_len - 4);
+    uint32_t crc1 = calc_header_crc(data, header_len - sizeof(uint32_t));
 
     if (crc1 != pkt_get_crc1(pkt))
         return E_CRC;
 
-    if (payload_len) {
-        memcpy(&pkt->crc2, data + PKT_MAX_HEADERLEN + payload_len, 4);
+    if (pkt_has_payload(pkt)) {
+        memcpy(&pkt->crc2, data + PKT_MAX_HEADERLEN + payload_len, sizeof(uint32_t));
+        memset((char*)&pkt->payload + payload_len, 0, sizeof(uint32_t));
         uint32_t crc2 = calc_payload_crc(data + header_len, payload_len);
 
         if (crc2 != pkt_get_crc2(pkt))
@@ -100,7 +101,7 @@ pkt_status_code pkt_encode(const pkt_t* pkt, char* buf, size_t* len)
     ssize_t header_len = predict_header_length(pkt);
     size_t len_to_write = header_len;
 
-    if (!pkt_is_ack_nack(pkt) && payload_len)
+    if (pkt_has_payload(pkt))
         len_to_write += payload_len + PKT_FOOTERLEN;
 
     if (*len < len_to_write)
@@ -113,11 +114,16 @@ pkt_status_code pkt_encode(const pkt_t* pkt, char* buf, size_t* len)
 
     calc_and_write_header_crc(buf, header_len - 4);
 
-    if (payload_len && !pkt_is_ack_nack(pkt))
+    if (pkt_has_payload(pkt))
         calc_and_write_payload_crc(buf + header_len, payload_len);
 
     *len = len_to_write;
     return PKT_OK;
+}
+
+bool pkt_has_payload(const pkt_t* pkt)
+{
+    return !pkt_get_tr(pkt) && !pkt_is_ack_nack(pkt) && pkt_get_payload(pkt);
 }
 
 ptypes_t pkt_get_type(const pkt_t* pkt)
