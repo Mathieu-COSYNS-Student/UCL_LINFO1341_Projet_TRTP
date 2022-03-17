@@ -44,7 +44,7 @@ tests: all $(TEST)
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 # By default, logs are disabled. But you can enable them with the debug target.
-debug: CFLAGS += -D_DEBUG
+debug: CFLAGS += -D_DEBUG -g
 debug: clean all
 
 # Place the zip in the parent repository of the project

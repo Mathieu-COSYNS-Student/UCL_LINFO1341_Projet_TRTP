@@ -19,31 +19,33 @@ uint32_t calc_header_crc(const char* buf, ssize_t len)
     memcpy(bufcpy, buf, len);
 
     bufcpy[0] = buf[0] & 0xdf;
-    uLong crc = htonl(crc32(0L, (Bytef*)bufcpy, len)); // need to tranform it in network byte
+    uLong crc = crc32(0L, (Bytef*)bufcpy, len);
 
     return crc;
 }
 
 uint32_t calc_payload_crc(const char* buf, ssize_t len)
 {
-    return htonl(crc32(0L, (Bytef*)buf, len));
+    return crc32(0L, (Bytef*)buf, len);
 }
 
 void calc_and_write_header_crc(char* buf, ssize_t len)
 {
-    uint32_t crc = calc_header_crc(buf, len);
+    uint32_t crc = htonl(calc_header_crc(buf, len));
     memcpy(buf + len, &crc, sizeof(uint32_t));
 }
 
 void calc_and_write_payload_crc(char* buf, ssize_t len)
 {
-    uint32_t crc = calc_payload_crc(buf, len);
+    uint32_t crc = htonl(calc_payload_crc(buf, len));
     memcpy(buf + len, &crc, sizeof(uint32_t));
 }
 
 pkt_t* pkt_new()
 {
-    return (pkt_t*)malloc(sizeof(pkt_t));
+    void* pkt = malloc(sizeof(pkt_t));
+    memset(pkt, 0, sizeof(pkt_t));
+    return (pkt_t*)pkt;
 }
 
 void pkt_del(pkt_t* pkt)
@@ -60,21 +62,22 @@ pkt_status_code pkt_decode(const char* data, const size_t len, pkt_t* pkt)
 
     memcpy(pkt, data, len);
 
+    if (pkt_get_tr(pkt) && pkt_get_type(pkt) != PTYPE_DATA)
+        return E_TR;
+
     if (pkt_is_ack_nack(pkt)) {
-        if (len > PKT_MIN_HEADERLEN)
+        if (len != PKT_MIN_HEADERLEN)
             return E_LENGTH;
         memcpy(((char*)pkt) + 3, data + 1, len - 1);
         pkt_set_length(pkt, 0);
     }
 
     uint16_t payload_len = pkt_get_length(pkt);
-    if (payload_len
-        && (len > PKT_MAX_HEADERLEN + payload_len + (payload_len ? PKT_FOOTERLEN : 0)
-            || payload_len > MAX_PAYLOAD_SIZE))
+    if ((pkt_has_payload(pkt)
+            && (len > PKT_MAX_HEADERLEN + payload_len + (payload_len ? PKT_FOOTERLEN : 0)
+                || payload_len > MAX_PAYLOAD_SIZE))
+        || (pkt_get_type(pkt) == PTYPE_FEC && payload_len != MAX_PAYLOAD_SIZE))
         return E_LENGTH;
-
-    if (pkt_get_tr(pkt) && pkt_get_type(pkt) != PTYPE_DATA)
-        return E_TR;
 
     ssize_t header_len = predict_header_length(pkt);
     uint32_t crc1 = calc_header_crc(data, header_len - sizeof(uint32_t));
@@ -83,9 +86,11 @@ pkt_status_code pkt_decode(const char* data, const size_t len, pkt_t* pkt)
         return E_CRC;
 
     if (pkt_has_payload(pkt)) {
-        memcpy(&pkt->crc2, data + PKT_MAX_HEADERLEN + payload_len, sizeof(uint32_t));
+        uint32_t crc2 = 0;
+        memcpy(&crc2, data + PKT_MAX_HEADERLEN + payload_len, sizeof(uint32_t));
         memset((char*)&pkt->payload + payload_len, 0, sizeof(uint32_t));
-        uint32_t crc2 = calc_payload_crc(data + header_len, payload_len);
+        memcpy(&pkt->crc2, &crc2, sizeof(uint32_t));
+        crc2 = calc_payload_crc(data + header_len, payload_len);
 
         if (crc2 != pkt_get_crc2(pkt))
             return E_CRC;
@@ -97,6 +102,10 @@ pkt_status_code pkt_decode(const char* data, const size_t len, pkt_t* pkt)
 pkt_status_code pkt_encode(const pkt_t* pkt, char* buf, size_t* len)
 {
     uint32_t payload_len = pkt_get_length(pkt);
+
+    if (payload_len > MAX_PAYLOAD_SIZE) {
+        return E_LENGTH;
+    }
 
     ssize_t header_len = predict_header_length(pkt);
     size_t len_to_write = header_len;
@@ -158,7 +167,7 @@ uint32_t pkt_get_timestamp(const pkt_t* pkt)
 
 uint32_t pkt_get_crc1(const pkt_t* pkt)
 {
-    return pkt->crc1;
+    return ntohl(pkt->crc1);
 }
 
 const char* pkt_get_payload(const pkt_t* pkt)
@@ -174,7 +183,7 @@ uint32_t pkt_get_crc2(const pkt_t* pkt)
     if (pkt->length == 0) {
         return 0;
     }
-    return pkt->crc2;
+    return ntohl(pkt->crc2);
 }
 
 pkt_status_code pkt_set_type(pkt_t* pkt, const ptypes_t type)
@@ -219,13 +228,13 @@ pkt_status_code pkt_set_timestamp(pkt_t* pkt, const uint32_t timestamp)
 
 pkt_status_code pkt_set_crc1(pkt_t* pkt, const uint32_t crc1)
 {
-    pkt->crc1 = crc1;
+    pkt->crc1 = htonl(crc1);
     return PKT_OK;
 }
 
 pkt_status_code pkt_set_crc2(pkt_t* pkt, const uint32_t crc2)
 {
-    pkt->crc2 = crc2;
+    pkt->crc2 = htonl(crc2);
     return PKT_OK;
 }
 
