@@ -1,22 +1,24 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "log.h"
+#include "statistics.h"
 
-int print_usage(char *prog_name) {
+int print_usage(char* prog_name)
+{
     ERROR("Usage:\n\t%s [-s stats_filename] listen_ip listen_port", prog_name);
     return EXIT_FAILURE;
 }
 
-
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
     int opt;
 
-    char *stats_filename = NULL;
-    char *listen_ip = NULL;
-    char *listen_port_err;
+    char* stats_filename = NULL;
+    char* listen_ip = NULL;
+    char* listen_port_err;
     uint16_t listen_port;
 
     while ((opt = getopt(argc, argv, "s:h")) != -1) {
@@ -37,22 +39,24 @@ int main(int argc, char **argv) {
     }
 
     listen_ip = argv[optind];
-    listen_port = (uint16_t) strtol(argv[optind + 1], &listen_port_err, 10);
+    listen_port = (uint16_t)strtol(argv[optind + 1], &listen_port_err, 10);
     if (*listen_port_err != '\0') {
         ERROR("Receiver port parameter is not a number");
         return print_usage(argv[0]);
     }
 
-    ASSERT(1 == 1); // Try to change it to see what happens when it fails
-    DEBUG_DUMP("Some bytes", 11); // You can use it with any pointer type
-
     // This is not an error per-se.
-    ERROR("Receiver has following arguments: stats_filename is %s, listen_ip is %s, listen_port is %u",
+    ERROR("Receiver has following arguments: stats_filename=\"%s\", listen_ip=\"%s\", listen_port=%u",
         stats_filename, listen_ip, listen_port);
 
-    DEBUG("You can only see me if %s", "you built me using `make debug`");
-    ERROR("This is not an error, %s", "now let's code!");
+    statistics_t statistics = {
+        0,
+    };
 
-    // Now let's code!
+    if (stats_filename) {
+        if (!write_receiver_stats(stats_filename, &statistics))
+            perror("Could not write stats file.");
+    }
+
     return EXIT_SUCCESS;
 }

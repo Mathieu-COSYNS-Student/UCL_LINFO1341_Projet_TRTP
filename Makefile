@@ -10,7 +10,7 @@ CFLAGS						:= -std=gnu99 -pedantic -Wvla -Wall -Werror -Wextra -Wshadow -D_COLO
 LDFLAGS						:= -lz
 
 # Adapt these as you want to fit with your project
-COMMON_SOURCES		:= $(wildcard src/log.c src/packet.c src/xxd.c)
+COMMON_SOURCES		:= $(wildcard src/log.c src/packet.c src/xxd.c src/statistics.c)
 SENDER_SOURCES		:= $(wildcard src/sender.c)
 RECEIVER_SOURCES	:= $(wildcard src/receiver.c)
 TEST_SOURCES			:= $(wildcard tests/test.c)
