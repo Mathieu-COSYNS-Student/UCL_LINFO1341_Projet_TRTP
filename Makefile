@@ -26,7 +26,7 @@ TEST							:= test
 
 PHONY							:= all clean debug zip $(SENDER) $(RECEIVER) $(TEST) tests
 
-all: $(SENDER) $(RECEIVER) $(TEST)
+all: $(SENDER) $(RECEIVER)
 
 $(SENDER): $(SENDER_OBJECTS) $(COMMON_OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
@@ -34,10 +34,11 @@ $(SENDER): $(SENDER_OBJECTS) $(COMMON_OBJECTS)
 $(RECEIVER): $(RECEIVER_OBJECTS) $(COMMON_OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-$(TEST): $(TEST_OBJECTS) $(COMMON_SOURCES)
+$(TEST): $(TEST_OBJECTS) $(COMMON_OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 tests: all $(TEST)
+	./test
 	./tests/run_tests.sh
 
 *.o: *.c
@@ -45,7 +46,7 @@ tests: all $(TEST)
 
 # By default, logs are disabled. But you can enable them with the debug target.
 debug: CFLAGS += -D_DEBUG -g
-debug: clean all
+debug: clean all $(TEST)
 
 # Place the zip in the parent repository of the project
 ZIP_NAME="../projet1_Cosyns_NgoranNtam.zip"
