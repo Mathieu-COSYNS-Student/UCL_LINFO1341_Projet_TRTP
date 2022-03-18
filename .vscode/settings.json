@@ -1,6 +1,7 @@
 {
-  "[c]": {
-    "editor.defaultFormatter": "ms-vscode.cpptools"
-  },
-  "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: WebKit, PointerAlignment: Left }"
+  "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: WebKit, PointerAlignment: Left }",
+  "files.associations": {
+    "wait_for_client.h": "c",
+    "create_socket.h": "c"
+  }
 }
