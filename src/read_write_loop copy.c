@@ -3,12 +3,12 @@
 #include <stdio.h>
 #include <sys/select.h>
 
-#define MAX_SEGEMENT_SIZE 1024
+#define MAX_SEGMENT_SIZE 1024
 
 void read_write_loop(const int sfd)
 {
-    char send_buffer[MAX_SEGEMENT_SIZE];
-    char recv_buffer[MAX_SEGEMENT_SIZE];
+    char send_buffer[MAX_SEGMENT_SIZE];
+    char recv_buffer[MAX_SEGMENT_SIZE];
 
     while (1) {
         // The structure for four events
@@ -55,7 +55,14 @@ void read_write_loop(const int sfd)
                 fds[1].revents = 0;
                 fds[2].revents = 0;
                 // input event on sfd and output event on stdout
-                recvfrom(sock, buffer, MAX_MESSAGE_SIZE, 0, (struct sockaddr*)&peer_addr, &peer_addr_len);
+                ssize_t recv_len = recv(sfd, recv_buffer, MAX_SEGMENT_SIZE, 0);
+                if (recv_len < 0) {
+                    perror("Couldn't read from sfd");
+                    return;
+                }
+                fflush(stdout);
+                fwrite(rstdout);
+                fflush(stdout);
             }
         }
     }
@@ -65,8 +72,8 @@ void read_write_loop(const int sfd)
     //     fflush(0);
     // }
 
-    // char bufferReceived[MAX_SEGEMENT_SIZE];
-    // ssize_t amount_read = read(sfd, bufferReceived, MAX_SEGEMENT_SIZE);
+    // char bufferReceived[MAX_SEGMENT_SIZE];
+    // ssize_t amount_read = read(sfd, bufferReceived, MAX_SEGMENT_SIZE);
     // if (amount_read == -1) {
     //     printf("could not read on the socket");
     // }

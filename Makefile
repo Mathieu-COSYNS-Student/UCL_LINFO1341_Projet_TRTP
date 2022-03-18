@@ -10,7 +10,8 @@ CFLAGS						:= -std=gnu99 -pedantic -Wvla -Wall -Werror -Wextra -Wshadow -D_COLO
 LDFLAGS						:= -lz
 
 # Adapt these as you want to fit with your project
-COMMON_SOURCES		:= $(wildcard src/log.c src/packet.c src/xxd.c src/statistics.c src/real_address.c src/create_socket.c)
+COMMON_SOURCES		:= $(wildcard src/log.c src/packet.c src/xxd.c src/statistics.c src/real_address.c \
+																src/create_socket.c src/read_write_loop.c src/wait_for_client.c)
 SENDER_SOURCES		:= $(wildcard src/sender.c)
 RECEIVER_SOURCES	:= $(wildcard src/receiver.c)
 TEST_SOURCES			:= $(wildcard tests/test.c tests/packet_tests.c tests/testBrandon.c)
@@ -27,6 +28,9 @@ TEST							:= test
 PHONY							:= all clean debug zip $(SENDER) $(RECEIVER) $(TEST) tests
 
 all: $(SENDER) $(RECEIVER)
+
+chat: $(COMMON_OBJECTS)
+	$(CC) $(CFLAGS) -o $@ $^ src/chat.c $(LDFLAGS)
 
 $(SENDER): $(SENDER_OBJECTS) $(COMMON_OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
@@ -61,6 +65,6 @@ zip:
 
 
 clean:
-	@$(RM) -rv src/*.o tests/*.o  $(SENDER) $(RECEIVER) $(TEST) input_file *.log
+	@$(RM) -rv src/*.o tests/*.o  $(SENDER) $(RECEIVER) $(TEST) chat input_file *.log
 
 .PHONY = $(PHONY)
