@@ -3,7 +3,7 @@
 
 #include "../src/log.h"
 #include "../src/real_address.h"
-#include "testBrandon.h"
+#include "real_address_tests.h"
 
 void print_ip_v6(struct sockaddr_in6* addr)
 {
@@ -15,7 +15,7 @@ void print_ip_v6(struct sockaddr_in6* addr)
     }
 }
 
-int run_test_brandon()
+int run_real_address_tests()
 {
     struct sockaddr_in6* rval = (struct sockaddr_in6*)malloc(sizeof(struct sockaddr_in6));
 

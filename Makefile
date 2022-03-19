@@ -14,7 +14,7 @@ COMMON_SOURCES		:= $(wildcard src/log.c src/packet.c src/xxd.c src/statistics.c 
 																src/create_socket.c src/read_write_loop.c src/wait_for_client.c)
 SENDER_SOURCES		:= $(wildcard src/sender.c)
 RECEIVER_SOURCES	:= $(wildcard src/receiver.c)
-TEST_SOURCES			:= $(wildcard tests/test.c tests/packet_tests.c tests/testBrandon.c)
+TEST_SOURCES			:= $(wildcard tests/test.c tests/packet_tests.c tests/real_address_tests.c)
 
 COMMON_OBJECTS		:= $(COMMON_SOURCES:.c=.o)
 SENDER_OBJECTS		:= $(SENDER_SOURCES:.c=.o)

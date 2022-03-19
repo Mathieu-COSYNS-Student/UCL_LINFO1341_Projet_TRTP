@@ -1,6 +1,6 @@
-#ifndef __TEST_BRANDON_H_
-#define __TEST_BRANDON_H_
+#ifndef __TEST_REAL_ADDRESS_H_
+#define __TEST_REAL_ADDRESS_H_
 
-int run_test_brandon();
+int run_real_address_tests();
 
-#endif // !__TEST_BRANDON_H_
+#endif // !__TEST_REAL_ADDRESS_H_
