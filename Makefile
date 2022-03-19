@@ -42,7 +42,6 @@ $(TEST): $(TEST_OBJECTS) $(COMMON_OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 tests: all $(TEST)
-	./test
 	./tests/run_tests.sh
 
 *.o: *.c

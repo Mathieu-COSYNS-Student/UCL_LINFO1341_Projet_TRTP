@@ -1,3 +1,5 @@
+#include "packet_tests.h"
+
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,7 +7,6 @@
 #include "../src/log.h"
 #include "../src/packet.h"
 #include "../src/xxd.h"
-#include "packet_tests.h"
 
 #ifdef _DEBUG
 #define TEST_FAILED(number_of_tests_failed) \

@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "create_socket.h"
 #include "log.h"
+#include "real_address.h"
 #include "statistics.h"
 
 int print_usage(char* prog_name)
@@ -54,18 +56,28 @@ int main(int argc, char** argv)
         return print_usage(argv[0]);
     }
 
-    // This is not an error per-se.
-    ERROR("Sender has following arguments: filename is %s, stats_filename is %s, fec_enabled is %d, receiver_ip is %s, receiver_port is %u",
+    INFO("Sender has following arguments: filename is %s, stats_filename is %s, fec_enabled is %d, receiver_ip is %s, receiver_port is %u",
         filename, stats_filename, fec_enabled, receiver_ip, receiver_port);
+
+    struct sockaddr_in6 receiver_addr;
+    const char* err = real_address(receiver_ip, &receiver_addr);
+    if (err) {
+        fprintf(stderr, "Could not resolve hostname %s: %s\n", receiver_ip, err);
+        return EXIT_FAILURE;
+    }
+
+    int sfd = create_socket(NULL, -1, &receiver_addr, receiver_port);
+
+    printf("sfd=%d\n", sfd);
+
+    // TODO
 
     statistics_t statistics = {
         0,
     };
 
-    if (stats_filename) {
-        if (!write_sender_stats(stats_filename, &statistics))
-            perror("Could not write stats file.");
-    }
+    if (!write_sender_stats(stats_filename, &statistics))
+        perror("Could not write stats file.");
 
     return EXIT_SUCCESS;
 }

@@ -1,10 +1,18 @@
 #include <stdio.h>
 
+#include "log.h"
 #include "statistics.h"
 
 FILE* write_common_stats(const char* pathname, statistics_t* statistics)
 {
-    FILE* file = fopen(pathname, "w");
+    FILE* file = stderr;
+
+    if (pathname) {
+        file = fopen(pathname, "w");
+        DEBUG("Writing stats on %s", pathname);
+    } else {
+        DEBUG("Writing stats on stderr");
+    }
 
     if (!file)
         return NULL;

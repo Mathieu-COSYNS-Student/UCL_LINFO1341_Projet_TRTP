@@ -1,3 +1,5 @@
+#include "wait_for_client.h"
+
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -5,7 +7,6 @@
 #include <sys/types.h>
 
 #include "create_socket.h"
-#include "wait_for_client.h"
 
 int wait_for_client(int sfd)
 {

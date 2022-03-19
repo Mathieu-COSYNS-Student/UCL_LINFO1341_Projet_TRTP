@@ -1,12 +1,10 @@
 #include "packet.h"
 
-/* Extra #includes */
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
 #include <zlib.h>
 
-/* Extra code */
 int pkt_is_ack_nack(const pkt_t* pkt)
 {
     uint8_t tr = pkt_get_tr(pkt);

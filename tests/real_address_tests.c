@@ -1,9 +1,10 @@
+#include "real_address_tests.h"
+
 #include <arpa/inet.h>
 #include <stdlib.h>
 
 #include "../src/log.h"
 #include "../src/real_address.h"
-#include "real_address_tests.h"
 
 void print_ip_v6(struct sockaddr_in6* addr)
 {

@@ -5,11 +5,12 @@
 #ifndef __LOG_H_
 #define __LOG_H_
 
-#include "xxd.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "xxd.h"
 
 #ifdef _COLOR
 /* Want more/other colors? See https://stackoverflow.com/a/3219471 and
@@ -17,11 +18,15 @@
  */
 #define ANSI_COLOR_BRIGHT_RED "\x1b[91m"
 #define ANSI_COLOR_BRIGHT_GREEN "\x1b[92m"
+#define ANSI_COLOR_BRIGHT_YELLOW "\x1b[93m"
+#define ANSI_COLOR_PURPLE "\x1b[35m"
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 #else
 #define ANSI_COLOR_BRIGHT_RED
 #define ANSI_COLOR_BRIGHT_GREEN
+#define ANSI_COLOR_BRIGHT_YELLOW
+#define ANSI_COLOR_PURPLE
 #define ANSI_COLOR_CYAN
 #define ANSI_COLOR_RESET
 #endif
@@ -33,9 +38,11 @@
 
 #define ERROR(msg, ...) _LOG(ANSI_COLOR_BRIGHT_RED, "[ERROR] ", msg, ##__VA_ARGS__)
 #define SUCCESS(msg, ...) _LOG(ANSI_COLOR_BRIGHT_GREEN, "[SUCCESS] ", msg, ##__VA_ARGS__)
+#define WARNING(msg, ...) _LOG(ANSI_COLOR_BRIGHT_YELLOW, "[WARNING] ", msg, ##__VA_ARGS__)
+#define INFO(msg, ...) _LOG(ANSI_COLOR_CYAN, "[INFO] ", msg, ##__VA_ARGS__)
 
 #ifdef _DEBUG
-#define DEBUG(msg, ...) _LOG(ANSI_COLOR_CYAN, "[DEBUG] ", msg, ##__VA_ARGS__)
+#define DEBUG(msg, ...) _LOG(ANSI_COLOR_PURPLE, "[DEBUG] ", msg, ##__VA_ARGS__)
 #else
 #define DEBUG(msg, ...)
 #endif
