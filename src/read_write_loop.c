@@ -53,7 +53,6 @@ void read_write_loop(const int sfd)
                     return;
                 }
                 send(sfd, send_buffer, ret, 0);
-                printf("SENT\n");
             }
 
             if (fds[1].revents & POLLOUT && fds[2].revents & POLLIN) {

@@ -13,9 +13,7 @@ int wait_for_client(int sfd)
     // Receive a message through the socket
     struct sockaddr_storage client_addr; // allocate the peer's address on the stack. It will be initialized when we receive a message
     socklen_t client_addr_len = sizeof(struct sockaddr_storage); // variable that will contain the length of the peer's address
-    printf("LISENNING\n");
     ssize_t n_received = recvfrom(sfd, NULL, 0, MSG_PEEK, (struct sockaddr*)&client_addr, &client_addr_len);
-    printf("RECV\n");
     if (n_received == -1) {
         fprintf(stderr, "Could not receive the message.");
         perror("Error");

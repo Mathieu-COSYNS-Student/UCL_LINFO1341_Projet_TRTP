@@ -73,9 +73,9 @@ int create_socket(struct sockaddr* src_addr,
         if (dst_port >= 0) {
             // Connect it to the destination
             if (dst_addr->sa_family == AF_INET)
-                ((struct sockaddr_in*)dst_addr)->sin_port = htons(src_port);
+                ((struct sockaddr_in*)dst_addr)->sin_port = htons(dst_port);
             else if (dst_addr->sa_family == AF_INET6)
-                ((struct sockaddr_in6*)dst_addr)->sin6_port = htons(src_port);
+                ((struct sockaddr_in6*)dst_addr)->sin6_port = htons(dst_port);
 
             int err = connect(sock, dst_addr, sizeof(*dst_addr));
             if (err == -1) {
