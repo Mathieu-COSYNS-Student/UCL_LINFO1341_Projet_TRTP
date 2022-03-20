@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "packet_tests.h"
@@ -5,10 +6,11 @@
 
 int main()
 {
-    if (run_packet_tests() != EXIT_SUCCESS)
-        return EXIT_FAILURE;
+    int packet_tests = run_packet_tests();
+    int real_address_tests = run_real_address_tests();
 
-    if (run_real_address_tests() != EXIT_SUCCESS)
+    if (packet_tests != EXIT_SUCCESS
+        || real_address_tests != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
     return EXIT_SUCCESS;

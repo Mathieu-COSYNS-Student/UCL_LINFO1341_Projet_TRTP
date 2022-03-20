@@ -41,8 +41,8 @@ int main(int argc, char* argv[])
         }
     }
     /* Resolve the hostname */
-    struct sockaddr_in6 addr;
-    const char* err = real_address(host, &addr);
+    struct sockaddr_storage addr;
+    const char* err = real_address(host, (struct sockaddr*)&addr);
     if (err) {
         fprintf(stderr, "Could not resolve hostname %s: %s\n", host, err);
         return EXIT_FAILURE;
@@ -50,9 +50,9 @@ int main(int argc, char* argv[])
     /* Get a socket */
     int sfd;
     if (client) {
-        sfd = create_socket(NULL, -1, &addr, port); /* Connected */
+        sfd = create_socket(NULL, -1, (struct sockaddr*)&addr, port); /* Connected */
     } else {
-        sfd = create_socket(&addr, port, NULL, -1); /* Bound */
+        sfd = create_socket((struct sockaddr*)&addr, port, NULL, -1); /* Bound */
         if (sfd > 0 && wait_for_client(sfd) < 0) { /* Connected */
             fprintf(stderr,
                 "Could not connect the socket after the first message.\n");

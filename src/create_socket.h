@@ -1,8 +1,8 @@
 #ifndef __CREATE_SOCKET_H_
 #define __CREATE_SOCKET_H_
 
-#include <netinet/in.h> /* * sockaddr_in6 */
-#include <sys/types.h> /* sockaddr_in6 */
+#include <netinet/in.h> /* * sockaddr */
+#include <sys/types.h> /* sockaddr */
 
 /* Creates a socket and initialize it
  * @source_addr: if !NULL, the source address that should be bound to this socket
@@ -12,9 +12,9 @@
  * @return: a file descriptor number representing the socket,
  *         or -1 in case of error (explanation will be printed on stderr)
  */
-int create_socket(struct sockaddr_in6* source_addr,
+int create_socket(struct sockaddr* source_addr,
     int src_port,
-    struct sockaddr_in6* dest_addr,
+    struct sockaddr* dest_addr,
     int dst_port);
 
 #endif

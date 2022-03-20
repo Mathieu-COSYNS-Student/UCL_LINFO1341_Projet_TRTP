@@ -54,6 +54,14 @@
         ERROR("Assertion \"%s\" failed at %s:%d", #cond, __FILE__, __LINE__); \
     }
 
+#ifdef _DEBUG
+#define TEST_FAILED(number_of_tests_failed) \
+    ERROR("%d test(s) failed.", number_of_tests_failed);
+#else
+#define TEST_FAILED(number_of_tests_failed) \
+    ERROR("%d test(s) failed. Try -D_DEBUG flag for more info.", number_of_tests_failed);
+#endif
+
 /* Prints `len` bytes starting from `bytes` to stderr */
 void dump(const uint8_t* bytes, size_t len);
 

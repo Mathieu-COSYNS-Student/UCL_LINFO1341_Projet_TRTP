@@ -5,15 +5,16 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 
-const char* real_address(const char* address, struct sockaddr_in6* rval)
+const char* real_address(const char* address, struct sockaddr* rval)
 {
     struct addrinfo* res;
 
-    if (getaddrinfo(address, NULL, NULL, &res)) {
-        return "getaddrinfo error";
+    int ret = getaddrinfo(address, NULL, NULL, &res);
+    if (ret != 0) {
+        return gai_strerror(ret);
     }
 
-    *rval = *((struct sockaddr_in6*)res->ai_addr);
+    *rval = *res->ai_addr;
 
     return NULL;
 }

@@ -8,14 +8,6 @@
 #include "../src/packet.h"
 #include "../src/xxd.h"
 
-#ifdef _DEBUG
-#define TEST_FAILED(number_of_tests_failed) \
-    ERROR("%d test(s) failed.", number_of_tests_failed);
-#else
-#define TEST_FAILED(number_of_tests_failed) \
-    ERROR("%d test(s) failed. Try -D_DEBUG flag for more info.", number_of_tests_failed);
-#endif
-
 #define DUMP_PKT_ENCODED_AND_DECODED(pkt_assertion, msg, ...)                              \
     ERROR("Error in assert_encode_decode with pkt_assertion->id = %d", pkt_assertion->id); \
     ERROR(msg, ##__VA_ARGS__);                                                             \
@@ -388,6 +380,7 @@ int run_packet_tests()
 
     if (number_of_tests_failed) {
         TEST_FAILED(number_of_tests_failed);
+        return EXIT_FAILURE;
     }
 
     SUCCESS("Packet tests: %ld test(s) out of %ld were successful.",

@@ -2,6 +2,11 @@
   "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: WebKit, PointerAlignment: Left }",
   "files.associations": {
     "wait_for_client.h": "c",
-    "create_socket.h": "c"
-  }
+    "create_socket.h": "c",
+    "packet.h": "c",
+    "statistics.h": "c",
+    "poll.h": "c",
+    "exchange_trtp.h": "c"
+  },
+  "cSpell.words": ["trtp"]
 }

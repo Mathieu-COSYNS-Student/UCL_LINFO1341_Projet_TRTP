@@ -13,8 +13,12 @@ if [ ! -z "$VALGRIND" ] ; then
     valgrind_receiver="valgrind --leak-check=full --log-file=valgrind_receiver.log"
 fi
 
+# On lance le simulateur de lien avec 10% de pertes et un délais de 50ms
+./link_sim -p 1341 -P 2456 -l 0 -d 50 -R  &> link.log &
+link_pid=$!
+
 # On lance le receiver et capture sa sortie standard
-$valgrind ./receiver -f received_file :: 2456  2> receiver.log &
+$valgrind_receiver ./receiver localhost 2456 > received_file 2> receiver.log &
 receiver_pid=$!
 
 cleanup()
@@ -26,7 +30,7 @@ cleanup()
 trap cleanup SIGINT  # Kill les process en arrière plan en cas de ^-C
 
 # On démarre le transfert
-if ! $valgrind ./sender ::1 1341 < input_file 2> sender.log ; then
+if ! $valgrind_sender ./sender localhost 2456 < input_file 2> sender.log ; then
   echo "Crash du sender!"
   cat sender.log
   err=1  # On enregistre l'erreur
@@ -44,6 +48,11 @@ else  # On teste la valeur de retour du receiver
     cat receiver.log
     err=1
   fi
+fi
+
+# On arrête le simulateur de lien
+if kill -0 $link_pid &> /dev/null ; then
+  kill -9 $link_pid &> /dev/null
 fi
 
 # On vérifie que le transfert s'est bien déroulé
