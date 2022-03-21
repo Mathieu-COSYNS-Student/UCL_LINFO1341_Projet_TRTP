@@ -4,7 +4,7 @@
 rm -f received_file input_file
 
 # Fichier au contenu aléatoire de 512 octets
-dd if=/dev/urandom of=input_file bs=1 count=512 &> /dev/null
+dd if=/dev/urandom of=input_file bs=1 count=$FILE_SIZE &> /dev/null
 
 valgrind_sender=""
 valgrind_receiver=""
@@ -14,11 +14,11 @@ if [ ! -z "$VALGRIND" ] ; then
 fi
 
 # On lance le simulateur de lien avec 10% de pertes et un délais de 50ms
-./link_sim -p 1341 -P 2456 -l 0 -d 50 -R  &> link.log &
+./link_sim -p 1341 -P 2456 $LINK_SIM_ARGS &> link.log &
 link_pid=$!
 
 # On lance le receiver et capture sa sortie standard
-$valgrind_receiver ./receiver localhost 2456 > received_file 2> receiver.log &
+$valgrind_receiver ./receiver :: 2456 > received_file 2> receiver.log &
 receiver_pid=$!
 
 cleanup()
@@ -30,7 +30,7 @@ cleanup()
 trap cleanup SIGINT  # Kill les process en arrière plan en cas de ^-C
 
 # On démarre le transfert
-if ! $valgrind_sender ./sender localhost 2456 < input_file 2> sender.log ; then
+if ! $valgrind_sender ./sender ::1 1341 < input_file 2> sender.log ; then
   echo "Crash du sender!"
   cat sender.log
   err=1  # On enregistre l'erreur

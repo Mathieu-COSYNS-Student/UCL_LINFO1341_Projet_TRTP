@@ -6,7 +6,8 @@
     "packet.h": "c",
     "statistics.h": "c",
     "poll.h": "c",
-    "exchange_trtp.h": "c"
+    "exchange_trtp.h": "c",
+    "window.h": "c"
   },
-  "cSpell.words": ["trtp"]
+  "cSpell.words": ["ptypes", "trtp"]
 }

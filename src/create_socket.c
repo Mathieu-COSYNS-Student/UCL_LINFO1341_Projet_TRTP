@@ -50,15 +50,27 @@ int create_socket(struct sockaddr* src_addr,
         return -1;
     }
 
+    int option = 1;
+    int ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(int));
+    if (ret < 0) {
+        ERROR("Could not set socket options: %s", strerror(errno));
+        return -1;
+    }
+
     if (src_addr) {
         if (src_port >= 0) {
             // Bind it to the source
-            if (src_addr->sa_family == AF_INET)
+            socklen_t src_addr_size = 0;
+            // Connect it to the destination
+            if (src_addr->sa_family == AF_INET) {
                 ((struct sockaddr_in*)src_addr)->sin_port = htons(src_port);
-            else if (src_addr->sa_family == AF_INET6)
+                src_addr_size = sizeof(struct sockaddr_in);
+            } else if (src_addr->sa_family == AF_INET6) {
                 ((struct sockaddr_in6*)src_addr)->sin6_port = htons(src_port);
+                src_addr_size = sizeof(struct sockaddr_in6);
+            }
 
-            int err = bind(sock, src_addr, sizeof(*src_addr));
+            int err = bind(sock, src_addr, src_addr_size);
             if (err == -1) {
                 ERROR("Could not bind on the socket.: %s", strerror(errno));
                 return -1;
@@ -71,13 +83,16 @@ int create_socket(struct sockaddr* src_addr,
 
     if (dst_addr) {
         if (dst_port >= 0) {
+            socklen_t dst_addr_size = 0;
             // Connect it to the destination
-            if (dst_addr->sa_family == AF_INET)
+            if (dst_addr->sa_family == AF_INET) {
                 ((struct sockaddr_in*)dst_addr)->sin_port = htons(dst_port);
-            else if (dst_addr->sa_family == AF_INET6)
+                dst_addr_size = sizeof(struct sockaddr_in);
+            } else if (dst_addr->sa_family == AF_INET6) {
                 ((struct sockaddr_in6*)dst_addr)->sin6_port = htons(dst_port);
-
-            int err = connect(sock, dst_addr, sizeof(*dst_addr));
+                dst_addr_size = sizeof(struct sockaddr_in6);
+            }
+            int err = connect(sock, dst_addr, dst_addr_size);
             if (err == -1) {
                 ERROR("Could not connect the socket.: %s", strerror(errno));
                 return -1;

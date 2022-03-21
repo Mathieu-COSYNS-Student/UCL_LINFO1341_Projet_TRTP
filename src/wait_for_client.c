@@ -1,12 +1,15 @@
 #include "wait_for_client.h"
 
 #include <arpa/inet.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
 #include "create_socket.h"
+#include "log.h"
 
 int wait_for_client(int sfd)
 {
@@ -15,15 +18,13 @@ int wait_for_client(int sfd)
     socklen_t client_addr_len = sizeof(struct sockaddr_storage); // variable that will contain the length of the peer's address
     ssize_t n_received = recvfrom(sfd, NULL, 0, MSG_PEEK, (struct sockaddr*)&client_addr, &client_addr_len);
     if (n_received == -1) {
-        fprintf(stderr, "Could not receive the message.");
-        perror("Error");
+        ERROR("Could not receive the message: %s", strerror(errno));
         return -1;
     }
 
     int err = connect(sfd, (struct sockaddr*)&client_addr, client_addr_len);
     if (err == -1) {
-        fprintf(stderr, "Could not connect the socket.");
-        perror("Error");
+        ERROR("Could not connect the socket: %s", strerror(errno));
         return -1;
     }
 

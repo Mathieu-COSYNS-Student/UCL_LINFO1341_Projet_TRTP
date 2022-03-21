@@ -55,12 +55,15 @@
     }
 
 #ifdef _DEBUG
-#define TEST_FAILED(number_of_tests_failed) \
-    ERROR("%d test(s) failed.", number_of_tests_failed);
+#define TEST_FAILED(test_name, number_of_tests_failed) \
+    ERROR("%s: %d test(s) failed.\n", test_name, number_of_tests_failed);
 #else
-#define TEST_FAILED(number_of_tests_failed) \
-    ERROR("%d test(s) failed. Try -D_DEBUG flag for more info.", number_of_tests_failed);
+#define TEST_FAILED(test_name, number_of_tests_failed) \
+    ERROR("%s: %d test(s) failed. Try -D_DEBUG flag for more info.\n", test_name, number_of_tests_failed);
 #endif
+
+#define TEST_SUCCESS(test_name, number_of_tests) \
+    SUCCESS("%s: %ld test(s) out of %ld were successful.\n", test_name, number_of_tests, number_of_tests);
 
 /* Prints `len` bytes starting from `bytes` to stderr */
 void dump(const uint8_t* bytes, size_t len);

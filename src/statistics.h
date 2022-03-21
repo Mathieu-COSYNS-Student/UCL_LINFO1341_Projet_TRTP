@@ -1,6 +1,7 @@
 #ifndef __STATISTICS_H_
 #define __STATISTICS_H_
 
+#include "packet.h"
 struct statistics {
     long data_sent; // Nombre de paquet de type PTYPE_DATA envoyés.
     long data_received; // Nombre de paquet de type PTYPE_DATA valides reçus.
@@ -26,5 +27,9 @@ typedef struct statistics statistics_t;
 int write_sender_stats(const char* pathname, statistics_t* statistics);
 
 int write_receiver_stats(const char* pathname, statistics_t* statistics);
+
+void update_stats_from_valid_pkt_sent(pkt_t* pkt, statistics_t* statistics);
+
+void update_stats_from_valid_pkt_received(pkt_t* pkt, statistics_t* statistics);
 
 #endif /* __STATISTICS_H_ */

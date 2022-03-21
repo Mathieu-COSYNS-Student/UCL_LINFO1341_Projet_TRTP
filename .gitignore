@@ -56,3 +56,7 @@ receiver
 sender
 test
 chat
+input_file
+received_file
+link_sim
+*.log

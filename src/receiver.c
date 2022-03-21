@@ -25,6 +25,7 @@ int main(int argc, char** argv)
     char* stats_filename = NULL;
     char* listen_ip = NULL;
     char* listen_port_err;
+    trtp_options_t options = { 0 };
     uint16_t listen_port;
 
     while ((opt = getopt(argc, argv, "s:h")) != -1) {
@@ -78,7 +79,7 @@ int main(int argc, char** argv)
         0,
     };
 
-    exchange_trtp(sfd, NULL, stdout, &statistics);
+    exchange_trtp(sfd, NULL, stdout, &options, &statistics);
 
     if (!write_receiver_stats(stats_filename, &statistics))
         perror("Could not write stats file.");

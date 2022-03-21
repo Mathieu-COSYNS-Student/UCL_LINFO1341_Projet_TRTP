@@ -378,13 +378,14 @@ int run_packet_tests()
         i++;
     }
 
+    char* test_name = "Packet tests";
+
     if (number_of_tests_failed) {
-        TEST_FAILED(number_of_tests_failed);
+        TEST_FAILED(test_name, number_of_tests_failed);
         return EXIT_FAILURE;
     }
 
-    SUCCESS("Packet tests: %ld test(s) out of %ld were successful.",
-        i - number_of_tests_failed, i);
+    TEST_SUCCESS(test_name, i);
 
     return EXIT_SUCCESS;
 }

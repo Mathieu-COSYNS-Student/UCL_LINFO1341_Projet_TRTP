@@ -12,7 +12,7 @@ LDFLAGS						:= -lz
 # Adapt these as you want to fit with your project
 COMMON_SOURCES		:= $(wildcard src/log.c src/packet.c src/xxd.c src/statistics.c src/real_address.c \
 																src/create_socket.c src/read_write_loop.c src/wait_for_client.c \
-																src/exchange_trtp.c)
+																src/exchange_trtp.c src/window.c)
 SENDER_SOURCES		:= $(wildcard src/sender.c)
 RECEIVER_SOURCES	:= $(wildcard src/receiver.c)
 TEST_SOURCES			:= $(wildcard tests/test.c tests/packet_tests.c tests/real_address_tests.c)
@@ -51,6 +51,12 @@ tests: all $(TEST)
 # By default, logs are disabled. But you can enable them with the debug target.
 debug: CFLAGS += -D_DEBUG -g
 debug: clean all chat $(TEST)
+
+install_dependencies:
+	rm -rf Linksimulator
+	git clone https://github.com/cnp3/Linksimulator
+	cd Linksimulator && make
+	cp Linksimulator/link_sim .
 
 # Place the zip in the parent repository of the project
 ZIP_NAME="../projet1_Cosyns_NgoranNtam.zip"

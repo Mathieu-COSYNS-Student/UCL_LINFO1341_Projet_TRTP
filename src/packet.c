@@ -41,8 +41,7 @@ void calc_and_write_payload_crc(char* buf, ssize_t len)
 
 pkt_t* pkt_new()
 {
-    void* pkt = malloc(sizeof(pkt_t));
-    memset(pkt, 0, sizeof(pkt_t));
+    void* pkt = calloc(sizeof(pkt_t), 1);
     return (pkt_t*)pkt;
 }
 
@@ -240,6 +239,10 @@ pkt_status_code pkt_set_payload(pkt_t* pkt,
     const char* data,
     const uint16_t length)
 {
+    if (!data && length) {
+        return E_LENGTH;
+    }
+
     pkt_status_code result = pkt_set_length(pkt, length);
     if (result != PKT_OK) {
         return result;

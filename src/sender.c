@@ -26,7 +26,7 @@ int main(int argc, char** argv)
     char* stats_filename = NULL;
     char* receiver_ip = NULL;
     char* receiver_port_err;
-    bool fec_enabled = false;
+    trtp_options_t options = { 0 };
     uint16_t receiver_port;
 
     while ((opt = getopt(argc, argv, "f:s:hc")) != -1) {
@@ -40,7 +40,7 @@ int main(int argc, char** argv)
             stats_filename = optarg;
             break;
         case 'c':
-            fec_enabled = true;
+            options.fec_enabled = true;
             break;
         default:
             return print_usage(argv[0]);
@@ -60,7 +60,7 @@ int main(int argc, char** argv)
     }
 
     INFO("Sender has following arguments: filename is %s, stats_filename is %s, fec_enabled is %d, receiver_ip is %s, receiver_port is %u",
-        filename, stats_filename, fec_enabled, receiver_ip, receiver_port);
+        filename, stats_filename, options.fec_enabled, receiver_ip, receiver_port);
 
     FILE* input = NULL;
 
@@ -88,7 +88,7 @@ int main(int argc, char** argv)
         0,
     };
 
-    exchange_trtp(sfd, input, NULL, &statistics);
+    exchange_trtp(sfd, input, NULL, &options, &statistics);
 
     if (!write_sender_stats(stats_filename, &statistics))
         perror("Could not write stats file.");

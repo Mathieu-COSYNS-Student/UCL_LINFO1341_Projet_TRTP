@@ -78,3 +78,38 @@ int write_receiver_stats(const char* pathname, statistics_t* statistics)
 
     return 1;
 }
+
+void update_stats_from_valid_pkt_sent(pkt_t* pkt, statistics_t* statistics)
+{
+    if (pkt_get_type(pkt) == PTYPE_DATA) {
+        statistics->data_sent++;
+        if (pkt_get_tr(pkt)) {
+            statistics->data_truncated_received++;
+        }
+    }
+    if (pkt_get_type(pkt) == PTYPE_ACK) {
+        statistics->ack_sent++;
+    }
+    if (pkt_get_type(pkt) == PTYPE_NACK) {
+        statistics->nack_sent++;
+    }
+    if (pkt_get_type(pkt) == PTYPE_FEC) {
+        statistics->fec_sent++;
+    }
+}
+
+void update_stats_from_valid_pkt_received(pkt_t* pkt, statistics_t* statistics)
+{
+    if (pkt_get_type(pkt) == PTYPE_DATA) {
+        statistics->data_received++;
+    }
+    if (pkt_get_type(pkt) == PTYPE_ACK) {
+        statistics->ack_received++;
+    }
+    if (pkt_get_type(pkt) == PTYPE_NACK) {
+        statistics->nack_received++;
+    }
+    if (pkt_get_type(pkt) == PTYPE_FEC) {
+        statistics->fec_received++;
+    }
+}
