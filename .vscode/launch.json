@@ -5,11 +5,37 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "gcc - Build and debug active file",
+      "name": "sender",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/sender",
-      "args": ["-f", "${workspaceFolder}/test.txt", "::", "8888"],
+      "args": ["-f", "${workspaceFolder}/Makefile", "::", "8888"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "make debug",
+      "miDebuggerPath": "/usr/bin/gdb"
+    },
+    {
+      "name": "receiver",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/receiver",
+      "args": ["::", "8888"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],

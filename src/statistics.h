@@ -32,4 +32,6 @@ void update_stats_from_valid_pkt_sent(pkt_t* pkt, statistics_t* statistics);
 
 void update_stats_from_valid_pkt_received(pkt_t* pkt, statistics_t* statistics);
 
+void update_stats_rtt(long rtt, statistics_t* statistics);
+
 #endif /* __STATISTICS_H_ */

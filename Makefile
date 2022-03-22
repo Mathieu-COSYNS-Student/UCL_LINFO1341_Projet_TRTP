@@ -6,8 +6,9 @@
 #		- Brandon Ngoran Ntam - 41481800
 
 CC								:= gcc
-CFLAGS						:= -std=gnu99 -pedantic -Wvla -Wall -Werror -Wextra -Wshadow -D_COLOR
-LDFLAGS						:= -lz
+DEBUG_FLAGS				:= -D_DEBUG -g
+CFLAGS						:= -std=gnu99 -pedantic -Wvla -Wall -Werror -Wextra -Wshadow -D_COLOR $(DEBUG_FLAGS)
+LDFLAGS						:= -lz -lm
 
 # Adapt these as you want to fit with your project
 COMMON_SOURCES		:= $(wildcard src/log.c src/packet.c src/xxd.c src/statistics.c src/real_address.c \
@@ -49,7 +50,7 @@ tests: all $(TEST)
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 # By default, logs are disabled. But you can enable them with the debug target.
-debug: CFLAGS += -D_DEBUG -g
+debug: CFLAGS += $(DEBUG_FLAGS)
 debug: clean all chat $(TEST)
 
 install_dependencies:

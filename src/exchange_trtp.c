@@ -17,15 +17,17 @@
 bool read_file(FILE* input, window_t* send_window)
 {
     char buffer[MAX_PAYLOAD_SIZE];
-    bool full = window_is_full(send_window);
 
-    if (!send_window->write_finished && !full) {
+    if (!send_window->write_finished && !window_is_full(send_window)) {
         uint16_t nb_read = fread(buffer, 1, MAX_PAYLOAD_SIZE, input);
 
         if (nb_read == 0) {
             if (ferror(input)) {
                 ERROR("Couldn't read from input: %s", strerror(errno));
                 return false;
+            }
+            if (feof(input)) {
+                send_window->write_finished = true;
             }
         }
 
@@ -35,14 +37,6 @@ bool read_file(FILE* input, window_t* send_window)
             ERROR("Attempt to add data pkt to a full window");
             return false;
         }
-
-        if (feof(input)) {
-            if (!window_add_data_pkt(send_window, NULL, 0)) {
-                ERROR("Attempt to add data pkt to a full window");
-                return false;
-            }
-            send_window->write_finished = true;
-        }
     }
 
     return true;
@@ -51,7 +45,7 @@ bool read_file(FILE* input, window_t* send_window)
 bool write_file(FILE* output, window_t* recv_window)
 {
     pkt_t* pkt;
-    while ((pkt = window_remove_first_pkt(recv_window))) {
+    while ((pkt = window_slide_if_possible(recv_window, 1))) {
         const char* payload = pkt_get_payload(pkt);
         uint16_t length = pkt_get_length(pkt);
 
@@ -67,37 +61,19 @@ bool write_file(FILE* output, window_t* recv_window)
     return true;
 }
 
-pkt_t* next_pkt_to_send(window_t* send_window, window_t* recv_window)
-{
-    if (window_has_pkt_to_send(recv_window)) {
-        pkt_t* pkt = pkt_new();
-        int seqnum = window_seqnum(recv_window);
-        pkt_set_type(pkt, PTYPE_ACK);
-        pkt_set_window(pkt, recv_window->size);
-        pkt_set_seqnum(pkt, window_next_seqnum(recv_window, seqnum));
-        pkt_set_timestamp(pkt, recv_window->pkts[seqnum].timestamp);
-
-        if (recv_window->write_finished) {
-            recv_window->read_finished = true;
-        }
-        return pkt;
-    } else if (window_has_pkt_to_send(send_window)) {
-        return next_pkt(send_window);
-    }
-
-    return NULL;
-}
-
 bool trtp_send(const int sfd, window_t* send_window, window_t* recv_window, statistics_t* statistics)
 {
-    pkt_t* pkt;
-    if (!(pkt = next_pkt_to_send(send_window, recv_window)))
+    pkt_t* pkt = NULL;
+    pkt = next_pkt(recv_window, statistics); // Return ACK or NACK
+    if (!pkt) {
+        pkt = next_pkt(send_window, statistics); // Return DATA or FEC
+    }
+    if (!pkt)
         return true;
 
     char buffer[PKT_MAX_LEN];
     size_t buffer_len = PKT_MAX_LEN;
     pkt_status_code ret = pkt_encode(pkt, buffer, &buffer_len);
-    pkt_del(pkt);
 
     if (ret != PKT_OK) {
         return false;
@@ -113,27 +89,9 @@ bool trtp_send(const int sfd, window_t* send_window, window_t* recv_window, stat
     }
 
     update_stats_from_valid_pkt_sent(pkt, statistics);
+    pkt_del(pkt);
 
     return true;
-}
-
-void update_state_from_recv_pkt(pkt_t* pkt, window_t* send_window, window_t* recv_window)
-{
-    ptypes_t pkt_type = pkt_get_type(pkt);
-
-    if (pkt_type == PTYPE_DATA) {
-        recv_window->pkts[pkt_get_seqnum(pkt)] = *pkt;
-        recv_window->pkts_status[pkt_get_seqnum(pkt)] = PKT_TO_ACK;
-        uint16_t length = pkt_get_length(pkt);
-
-        if (length == 0 && pkt_get_type(pkt) == PTYPE_DATA) {
-            recv_window->write_finished = true;
-            return;
-        }
-    } else if (pkt_type == PTYPE_ACK) {
-        uint8_t seqnum = pkt_get_seqnum(pkt);
-        send_window->pkts_status[seqnum] = PKT_ACK_OK;
-    }
 }
 
 bool trtp_recv(const int sfd, window_t* send_window, window_t* recv_window, statistics_t* statistics)
@@ -154,7 +112,8 @@ bool trtp_recv(const int sfd, window_t* send_window, window_t* recv_window, stat
     }
 
     DEBUG("Packet received.");
-    update_state_from_recv_pkt(pkt, send_window, recv_window);
+    window_update_from_received_pkt(send_window, pkt, statistics);
+    window_update_from_received_pkt(recv_window, pkt, statistics);
     update_stats_from_valid_pkt_received(pkt, statistics);
     pkt_del(pkt);
 
@@ -164,8 +123,8 @@ bool trtp_recv(const int sfd, window_t* send_window, window_t* recv_window, stat
 void exchange_trtp(const int sfd, FILE* input, FILE* output, const trtp_options_t* const options, statistics_t* statistics)
 {
     bool stop = false;
-    window_t* send_window = window_new(SEND_WINDOW);
-    window_t* recv_window = window_new(RECV_WINDOW);
+    window_t* send_window = NULL;
+    window_t* recv_window = NULL;
 
     int input_poll_index = -1;
     int output_poll_index = -1;
@@ -174,15 +133,20 @@ void exchange_trtp(const int sfd, FILE* input, FILE* output, const trtp_options_
     if (input) {
         input_poll_index = fds_len;
         fds_len++;
+
+        send_window = window_new(SEND_WINDOW);
         if (!window_set_size(send_window, 5)) {
             stop = true;
+        } else {
+            send_window->peer_size = 1;
         }
-        send_window->peer_size = 1;
     }
 
     if (output) {
         output_poll_index = fds_len;
         fds_len++;
+
+        recv_window = window_new(RECV_WINDOW);
         if (!window_set_size(recv_window, 5)) {
             stop = true;
         }

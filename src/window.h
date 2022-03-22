@@ -2,6 +2,7 @@
 #define __WINDOW_H_
 
 #include "packet.h"
+#include "statistics.h"
 
 typedef enum {
     SEND_WINDOW = 0,
@@ -14,16 +15,23 @@ typedef enum {
     PKT_TO_NACK,
     PKT_NEED_ACK,
     PKT_ACK_OK,
+    PKT_PREPARED,
 } pkt_window_status;
 
 typedef struct {
-    window_type type;
-    pkt_t* pkts;
-    pkt_window_status* pkts_status;
+    pkt_t pkt;
+    pkt_window_status status;
+} pkt_window_element;
+
+typedef struct {
+    // data structure
+    pkt_window_element* elements;
     uint8_t size;
+    uint8_t logical_size;
+    // window props
+    window_type type;
     uint8_t peer_size;
-    uint8_t start_pos;
-    uint8_t end_pos;
+    uint8_t seqnum;
     bool read_finished;
     bool write_finished;
 } window_t;
@@ -34,24 +42,18 @@ void window_del(window_t* window);
 
 bool window_set_size(window_t* window, const uint8_t size);
 
-bool window_closed(window_t* window);
-
-int window_seqnum(window_t* window);
-
-uint8_t window_fill_size(window_t* window);
-
 bool window_is_full(window_t* window);
 
-bool window_has_pkt_to_send(window_t* window);
+bool window_closed(window_t* window);
+
+pkt_t* next_pkt(window_t* window, statistics_t* statistics);
 
 bool window_add_data_pkt(window_t* window, char* buffer, size_t buffer_len);
 
 bool window_add_fec_pkt_if_needed(window_t* window);
 
-pkt_t* window_remove_first_pkt(window_t* window);
+pkt_t* window_slide_if_possible(window_t* window, uint8_t shift);
 
-pkt_t* next_pkt(window_t* window);
-
-uint8_t window_next_seqnum(window_t* window, uint8_t seqnum);
+void window_update_from_received_pkt(window_t* window, pkt_t* pkt, statistics_t* statistics);
 
 #endif /* __WINDOW_H_ */

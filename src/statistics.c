@@ -83,9 +83,6 @@ void update_stats_from_valid_pkt_sent(pkt_t* pkt, statistics_t* statistics)
 {
     if (pkt_get_type(pkt) == PTYPE_DATA) {
         statistics->data_sent++;
-        if (pkt_get_tr(pkt)) {
-            statistics->data_truncated_received++;
-        }
     }
     if (pkt_get_type(pkt) == PTYPE_ACK) {
         statistics->ack_sent++;
@@ -102,6 +99,9 @@ void update_stats_from_valid_pkt_received(pkt_t* pkt, statistics_t* statistics)
 {
     if (pkt_get_type(pkt) == PTYPE_DATA) {
         statistics->data_received++;
+        if (pkt_get_tr(pkt)) {
+            statistics->data_truncated_received++;
+        }
     }
     if (pkt_get_type(pkt) == PTYPE_ACK) {
         statistics->ack_received++;
@@ -112,4 +112,12 @@ void update_stats_from_valid_pkt_received(pkt_t* pkt, statistics_t* statistics)
     if (pkt_get_type(pkt) == PTYPE_FEC) {
         statistics->fec_received++;
     }
+}
+
+void update_stats_rtt(long rtt, statistics_t* statistics)
+{
+    if (rtt < statistics->min_rtt)
+        statistics->min_rtt = rtt;
+    if (rtt > statistics->max_rtt)
+        statistics->max_rtt = rtt;
 }

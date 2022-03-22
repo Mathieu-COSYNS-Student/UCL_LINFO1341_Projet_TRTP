@@ -7,7 +7,8 @@
     "statistics.h": "c",
     "poll.h": "c",
     "exchange_trtp.h": "c",
-    "window.h": "c"
+    "window.h": "c",
+    "math.h": "c"
   },
   "cSpell.words": ["ptypes", "trtp"]
 }
