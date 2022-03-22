@@ -4,6 +4,8 @@
 #include "packet.h"
 #include "statistics.h"
 
+#define WINDOW_RESTRANMISSION_TIMEOUT 1800
+
 typedef enum {
     SEND_WINDOW = 0,
     RECV_WINDOW
@@ -40,7 +42,7 @@ window_t* window_new(window_type type);
 
 void window_del(window_t* window);
 
-bool window_set_size(window_t* window, const uint8_t size);
+bool window_resize_if_needed(window_t* window, const uint8_t size);
 
 bool window_is_full(window_t* window);
 

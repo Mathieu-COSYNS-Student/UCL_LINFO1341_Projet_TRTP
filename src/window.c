@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "log.h"
 #include "statistics.h"
@@ -27,7 +28,7 @@ void window_del(window_t* window)
     free(window);
 }
 
-bool window_set_size(window_t* window, const uint8_t size)
+bool window_resize_if_needed(window_t* window, const uint8_t size)
 {
     if (!window)
         return false;
@@ -39,9 +40,10 @@ bool window_set_size(window_t* window, const uint8_t size)
         if (window->elements == NULL)
             return false;
     } else {
-        window->elements = reallocarray(window->elements, sizeof(pkt_window_element), size);
+        pkt_window_element* elements = reallocarray(window->elements, sizeof(pkt_window_element), size);
         if (window->elements == NULL)
             return false;
+        window->elements = elements;
         if (size > window->size)
             memset(window->elements + window->size, 0, (window->size - size) * sizeof(pkt_window_element));
     }
@@ -188,19 +190,37 @@ pkt_t* window_slide_if_possible(window_t* window, uint8_t shift)
     return pkt;
 }
 
+pkt_t* build_next_pkt_send_window(pkt_window_element* element)
+{
+    struct timespec time;
+    clock_gettime(CLOCK_MONOTONIC_COARSE, &time);
+    uint32_t timestamp_now = time.tv_sec + (time.tv_nsec / 1000000);
+
+    pkt_set_timestamp(&element->pkt, timestamp_now);
+
+    pkt_t* pkt = pkt_new();
+    memcpy(pkt, &element->pkt, sizeof(pkt_t));
+
+    return pkt;
+}
+
 pkt_t* next_pkt_send_window(window_t* window, statistics_t* statistics)
 {
     for (size_t i = 0; i < fminl(window->peer_size, window->logical_size); i++) {
         pkt_window_element* element = window->elements + i;
         if (element->status == PKT_PREPARED) {
             element->status = PKT_NEED_ACK;
-            pkt_t* pkt = pkt_new();
-            memcpy(pkt, &element->pkt, sizeof(pkt_t));
-            return pkt;
+            return build_next_pkt_send_window(element);
         } else if (element->status == PKT_NEED_ACK) {
-            // TODO retransmission timer
-            if (0) {
+            struct timespec time;
+            clock_gettime(CLOCK_MONOTONIC_COARSE, &time);
+            long timestamp_now = time.tv_sec + (time.tv_nsec / 1000000);
+
+            if (((long)pkt_get_timestamp(&element->pkt)) + WINDOW_RESTRANMISSION_TIMEOUT <= timestamp_now) {
+
                 statistics->packet_retransmitted++;
+
+                return build_next_pkt_send_window(element);
             }
         } else {
             ERROR("There is a unexpected packet in the sending window");
@@ -211,13 +231,21 @@ pkt_t* next_pkt_send_window(window_t* window, statistics_t* statistics)
     return NULL;
 }
 
+pkt_t* build_next_pkt_recv_window(window_t* window, ptypes_t pkt_type)
+{
+    pkt_t* pkt = pkt_new();
+    pkt_set_type(pkt, pkt_type);
+    pkt_set_window(pkt, window->size);
+
+    return pkt;
+}
+
 pkt_t* next_pkt_recv_window(window_t* window)
 {
     if (window->logical_size == 0)
         return NULL;
 
     pkt_t* pkt = NULL;
-    uint8_t shift = 0;
     ssize_t to_ack = -1;
 
     for (size_t i = 0; i < window->logical_size; i++) {
@@ -225,20 +253,22 @@ pkt_t* next_pkt_recv_window(window_t* window)
         if (element->status == PKT_TO_ACK) {
             element->status = PKT_ACK_OK;
             to_ack = pkt_get_seqnum(&element->pkt);
-            shift++;
-
-            pkt = pkt_new();
-            // pkt_set_timestamp(pkt, window->elements->pkt[window->seqnum].timestamp);
-            // window_increment_seqnum(window);
-            pkt_set_type(pkt, PTYPE_ACK);
-            pkt_set_window(pkt, window->size);
-            pkt_set_seqnum(pkt, window->seqnum);
-
         } else {
             if (to_ack != -1) {
                 break;
             }
+
+            if (element->status == PKT_TO_NACK) {
+                pkt = build_next_pkt_recv_window(window, PTYPE_NACK);
+                pkt_set_seqnum(pkt, element->pkt.seqnum);
+                break;
+            }
         }
+    }
+
+    if (to_ack != -1 && !pkt) {
+        pkt = build_next_pkt_recv_window(window, PTYPE_ACK);
+        pkt_set_seqnum(pkt, next_seqnum(to_ack));
     }
 
     if (window->write_finished) {
@@ -267,6 +297,11 @@ void window_update_from_received_pkt(window_t* window, pkt_t* pkt, statistics_t*
     ptypes_t type = pkt_get_type(pkt);
 
     if (window->type == SEND_WINDOW) {
+        uint8_t peer_size = pkt_get_window(pkt);
+        if (window_resize_if_needed(window, peer_size)) {
+            window->peer_size = peer_size;
+        }
+
         if (type == PTYPE_ACK) {
             // TODO seqnum
             window->elements[0].status = PKT_ACK_OK;

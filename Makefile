@@ -43,7 +43,7 @@ $(RECEIVER): $(RECEIVER_OBJECTS) $(COMMON_OBJECTS)
 $(TEST): $(TEST_OBJECTS) $(COMMON_OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-tests: all $(TEST)
+tests: all install_dependencies $(TEST)
 	./tests/run_tests.sh
 
 *.o: *.c
@@ -54,10 +54,7 @@ debug: CFLAGS += $(DEBUG_FLAGS)
 debug: clean all chat $(TEST)
 
 install_dependencies:
-	rm -rf Linksimulator
-	git clone https://github.com/cnp3/Linksimulator
-	cd Linksimulator && make
-	cp Linksimulator/link_sim .
+	./install_dependencies.sh
 
 # Place the zip in the parent repository of the project
 ZIP_NAME="../projet1_Cosyns_NgoranNtam.zip"
@@ -75,3 +72,6 @@ clean:
 	@$(RM) -rv src/*.o tests/*.o $(SENDER) $(RECEIVER) $(TEST) chat input_file received_file *.log
 
 .PHONY = $(PHONY)
+
+# Wireshark filter
+# (udp.port == 8888 || udp.port == 2456 || udp.port == 1341) && !(udp.srcport == 1341 && udp.dstport == 2456) && !(udp.srcport == 2456 && udp.dstport == 1341)

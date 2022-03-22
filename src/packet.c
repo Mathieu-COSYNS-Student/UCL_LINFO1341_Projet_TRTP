@@ -7,8 +7,8 @@
 
 int pkt_is_ack_nack(const pkt_t* pkt)
 {
-    uint8_t tr = pkt_get_tr(pkt);
-    return tr == PTYPE_ACK || tr == PTYPE_NACK;
+    uint8_t type = pkt_get_type(pkt);
+    return type == PTYPE_ACK || type == PTYPE_NACK;
 }
 
 uint32_t calc_header_crc(const char* buf, ssize_t len)
@@ -47,6 +47,8 @@ pkt_t* pkt_new()
 
 void pkt_del(pkt_t* pkt)
 {
+    if (!pkt)
+        return;
     free(pkt);
 }
 

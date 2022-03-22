@@ -135,7 +135,7 @@ void exchange_trtp(const int sfd, FILE* input, FILE* output, const trtp_options_
         fds_len++;
 
         send_window = window_new(SEND_WINDOW);
-        if (!window_set_size(send_window, 5)) {
+        if (!window_resize_if_needed(send_window, 5)) {
             stop = true;
         } else {
             send_window->peer_size = 1;
@@ -147,7 +147,7 @@ void exchange_trtp(const int sfd, FILE* input, FILE* output, const trtp_options_
         fds_len++;
 
         recv_window = window_new(RECV_WINDOW);
-        if (!window_set_size(recv_window, 5)) {
+        if (!window_resize_if_needed(recv_window, 5)) {
             stop = true;
         }
     }
@@ -201,15 +201,10 @@ void exchange_trtp(const int sfd, FILE* input, FILE* output, const trtp_options_
 
                 if (options->fec_enabled) {
                     window_add_fec_pkt_if_needed(send_window);
-                    // TODO also check bettewen last DATA and closing DATA
                 }
 
                 if (!read_file(input, send_window)) {
                     stop = true;
-                }
-
-                if (options->fec_enabled) {
-                    window_add_fec_pkt_if_needed(send_window);
                 }
             }
 

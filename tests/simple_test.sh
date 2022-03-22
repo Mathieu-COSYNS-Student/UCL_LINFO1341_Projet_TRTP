@@ -36,7 +36,7 @@ if ! $valgrind_sender ./sender ::1 1341 < input_file 2> sender.log ; then
   err=1  # On enregistre l'erreur
 fi
 
-sleep 5 # On attend 5 seconde que le receiver finisse
+sleep 2 # On attend 5 seconde que le receiver finisse
 
 if kill -0 $receiver_pid &> /dev/null ; then
   echo "Le receiver ne s'est pas arreté à la fin du transfert!"
@@ -53,6 +53,7 @@ fi
 # On arrête le simulateur de lien
 if kill -0 $link_pid &> /dev/null ; then
   kill -9 $link_pid &> /dev/null
+  wait $link_pid 2>/dev/null
 fi
 
 # On vérifie que le transfert s'est bien déroulé
