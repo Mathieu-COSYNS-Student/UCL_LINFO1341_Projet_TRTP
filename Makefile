@@ -13,7 +13,7 @@ LDFLAGS						:= -lz -lm
 # Adapt these as you want to fit with your project
 COMMON_SOURCES		:= $(wildcard src/log.c src/packet.c src/xxd.c src/statistics.c src/real_address.c \
 																src/create_socket.c src/read_write_loop.c src/wait_for_client.c \
-																src/exchange_trtp.c src/window.c)
+																src/exchange_trtp.c src/window.c src/utils.c)
 SENDER_SOURCES		:= $(wildcard src/sender.c)
 RECEIVER_SOURCES	:= $(wildcard src/receiver.c)
 TEST_SOURCES			:= $(wildcard tests/test.c tests/packet_tests.c tests/real_address_tests.c)
@@ -60,7 +60,7 @@ install_dependencies:
 ZIP_NAME="../projet1_Cosyns_NgoranNtam.zip"
 
 # A zip target, to help you have a proper zip file. You probably need to adapt this code.
-zip:
+zip: clean
 	# Generate the log file stat now. Try to keep the repository clean.
 	git log --stat > gitlog.stat
 	zip -r $(ZIP_NAME) Makefile README.md src tests rapport.pdf gitlog.stat

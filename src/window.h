@@ -5,6 +5,7 @@
 #include "statistics.h"
 
 #define WINDOW_RESTRANMISSION_TIMEOUT 1800
+#define WINDOW_SHUTDOWN_TIMEOUT 4000
 
 typedef enum {
     SEND_WINDOW = 0,
@@ -34,6 +35,8 @@ typedef struct {
     window_type type;
     uint8_t peer_size;
     uint8_t seqnum;
+    int32_t last_used_pkt_timestamp;
+    long shutdown_time;
     bool read_finished;
     bool write_finished;
 } window_t;

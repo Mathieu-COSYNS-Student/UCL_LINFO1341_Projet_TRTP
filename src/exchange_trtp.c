@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "log.h"
+#include "utils.h"
 #include "window.h"
 
 #define SFD_IN 0
@@ -76,6 +77,7 @@ bool trtp_send(const int sfd, window_t* send_window, window_t* recv_window, stat
     pkt_status_code ret = pkt_encode(pkt, buffer, &buffer_len);
 
     if (ret != PKT_OK) {
+        ERROR("Received packet is corrupted. status=%d", ret);
         return false;
     }
 
@@ -111,7 +113,6 @@ bool trtp_recv(const int sfd, window_t* send_window, window_t* recv_window, stat
         return false;
     }
 
-    DEBUG("Packet received.");
     window_update_from_received_pkt(send_window, pkt, statistics);
     window_update_from_received_pkt(recv_window, pkt, statistics);
     update_stats_from_valid_pkt_received(pkt, statistics);
@@ -182,6 +183,12 @@ void exchange_trtp(const int sfd, FILE* input, FILE* output, const trtp_options_
     }
 
     while (!stop) {
+        if (recv_window && recv_window->shutdown_time != -1) {
+            long current_time = get_time_in_milliseconds();
+            if (recv_window->shutdown_time < current_time) {
+                recv_window->read_finished = true;
+            }
+        }
         if (window_closed(send_window) && window_closed(recv_window)) {
             stop = true;
             continue;
