@@ -6,7 +6,7 @@
 #include <string.h>
 #include <sys/socket.h>
 
-const char* real_address(const char* address, struct sockaddr* rval)
+const char* real_address(const char* address, struct sockaddr_storage* rval)
 {
     struct addrinfo* res;
 
@@ -15,7 +15,7 @@ const char* real_address(const char* address, struct sockaddr* rval)
         return gai_strerror(ret);
     }
 
-    memcpy(rval, res->ai_addr, sizeof(struct sockaddr));
+    memcpy(rval, res->ai_addr, sizeof(struct sockaddr_storage));
 
     freeaddrinfo(res);
 

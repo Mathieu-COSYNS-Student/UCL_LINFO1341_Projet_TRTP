@@ -6,7 +6,7 @@
 #include "../src/log.h"
 #include "../src/real_address.h"
 
-#define ADDRS_LEN 5
+#define ADDRS_LEN 6
 
 void print_ip(const char* addr_name, const struct sockaddr* addr)
 {
@@ -30,11 +30,12 @@ int run_real_address_tests()
         "localhost",
         "www.google.com",
         "uclouvain.be",
+        "intel12",
     };
 
     size_t i = 0;
     size_t number_of_tests_failed = 0;
-    struct sockaddr* rval = (struct sockaddr*)malloc(sizeof(struct sockaddr));
+    struct sockaddr_storage* rval = (struct sockaddr_storage*)malloc(sizeof(struct sockaddr_storage));
 
     for (; i < ADDRS_LEN; i++) {
         const char* err = real_address(addrs[i], rval);
@@ -42,7 +43,7 @@ int run_real_address_tests()
             number_of_tests_failed++;
             ERROR("Real address failed for \"%s\": %s", addrs[i], err);
         } else {
-            print_ip(addrs[i], rval);
+            print_ip(addrs[i], (struct sockaddr*)rval);
         }
     }
 

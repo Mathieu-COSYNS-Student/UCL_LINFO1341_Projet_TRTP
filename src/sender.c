@@ -63,7 +63,7 @@ int main(int argc, char** argv)
         filename, stats_filename, options.fec_enabled, receiver_ip, receiver_port);
 
     struct sockaddr_storage receiver_addr = { 0 };
-    const char* err = real_address(receiver_ip, (struct sockaddr*)&receiver_addr);
+    const char* err = real_address(receiver_ip, &receiver_addr);
     if (err) {
         ERROR("Could not resolve hostname \"%s\": %s\n", receiver_ip, err);
         return EXIT_FAILURE;

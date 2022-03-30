@@ -57,7 +57,7 @@ bool queue_resize(queue_t* queue, size_t capacity)
             return false;
         queue->items = items;
         if (capacity > queue->capacity)
-            memset(queue->items, 0, queue->nmemb * (capacity - queue->capacity));
+            memset((char*)queue->items + (queue->nmemb * queue->capacity), 0, queue->nmemb * (capacity - queue->capacity));
     }
     queue->capacity = capacity;
     return true;

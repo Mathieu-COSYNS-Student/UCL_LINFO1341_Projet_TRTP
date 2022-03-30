@@ -12,6 +12,6 @@
  *          (const char* means the caller cannot modify or free the return value,
  *           so do not use malloc!)
  */
-const char* real_address(const char* address, struct sockaddr* rval);
+const char* real_address(const char* address, struct sockaddr_storage* rval);
 
 #endif

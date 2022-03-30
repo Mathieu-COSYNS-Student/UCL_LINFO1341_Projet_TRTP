@@ -111,6 +111,9 @@ bool trtp_recv(const int sfd, window_t* send_window, window_t* recv_window, stat
 
     if (ret != PKT_OK) {
         DEBUG("Received a corrupted packet. error=%d", ret);
+        if(ret == E_LENGTH)  {
+            DEBUG("recv_len=%ld", recv_len);
+        }
         pkt_del(pkt);
         return true;
     }

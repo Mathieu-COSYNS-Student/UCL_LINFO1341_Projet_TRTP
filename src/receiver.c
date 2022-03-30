@@ -60,7 +60,7 @@ int main(int argc, char** argv)
         filename, stats_filename, listen_ip, listen_port);
 
     struct sockaddr_storage listen_addr = { 0 };
-    const char* err = real_address(listen_ip, (struct sockaddr*)&listen_addr);
+    const char* err = real_address(listen_ip, &listen_addr);
     if (err) {
         ERROR("Could not resolve hostname \"%s\": %s\n", listen_ip, err);
         return EXIT_FAILURE;

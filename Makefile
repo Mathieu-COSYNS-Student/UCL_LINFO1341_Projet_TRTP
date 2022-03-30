@@ -7,7 +7,7 @@
 
 CC								:= gcc
 DEBUG_FLAGS				:= -D_DEBUG -g
-sCOLOR_FLAGS				:= -D_COLOR
+COLOR_FLAGS				:= -D_COLOR
 CFLAGS						:= -std=gnu99 -pedantic -Wvla -Wall -Werror -Wextra -Wshadow $(COLOR_FLAGS) $(DEBUG_FLAGS)
 LDFLAGS						:= -lz -lm
 
