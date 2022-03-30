@@ -22,14 +22,18 @@ int main(int argc, char** argv)
 {
     int opt;
 
+    char* filename = NULL;
     char* stats_filename = NULL;
     char* listen_ip = NULL;
     char* listen_port_err;
     trtp_options_t options = { 0 };
     uint16_t listen_port;
 
-    while ((opt = getopt(argc, argv, "s:h")) != -1) {
+    while ((opt = getopt(argc, argv, "f:s:h")) != -1) {
         switch (opt) {
+        case 'f':
+            filename = optarg;
+            break;
         case 'h':
             return print_usage(argv[0]);
         case 's':
@@ -52,10 +56,10 @@ int main(int argc, char** argv)
         return print_usage(argv[0]);
     }
 
-    INFO("Receiver has following arguments: stats_filename=\"%s\", listen_ip=\"%s\", listen_port=%u",
-        stats_filename, listen_ip, listen_port);
+    INFO("Receiver has following arguments: filename is %s, stats_filename=\"%s\", listen_ip=\"%s\", listen_port=%u",
+        filename, stats_filename, listen_ip, listen_port);
 
-    struct sockaddr_storage listen_addr;
+    struct sockaddr_storage listen_addr = { 0 };
     const char* err = real_address(listen_ip, (struct sockaddr*)&listen_addr);
     if (err) {
         ERROR("Could not resolve hostname \"%s\": %s\n", listen_ip, err);
@@ -75,11 +79,23 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
+    FILE* output = NULL;
+
+    if (filename) {
+        output = fopen(filename, "w");
+    } else {
+        output = stdout;
+    }
+
     statistics_t statistics = {
         0,
     };
 
-    exchange_trtp(sfd, NULL, stdout, &options, &statistics);
+    exchange_trtp(sfd, NULL, output, &options, &statistics);
+
+    if (filename) {
+        fclose(output);
+    }
 
     if (!write_receiver_stats(stats_filename, &statistics))
         perror("Could not write stats file.");

@@ -2,6 +2,7 @@
 #define __WINDOW_H_
 
 #include "packet.h"
+#include "queue.h"
 #include "statistics.h"
 
 #define WINDOW_RESTRANMISSION_TIMEOUT 1800
@@ -28,9 +29,7 @@ typedef struct {
 
 typedef struct {
     // data structure
-    pkt_window_element* elements;
-    uint8_t size;
-    uint8_t logical_size;
+    queue_t* queue;
     // window props
     window_type type;
     uint8_t peer_size;
@@ -41,11 +40,9 @@ typedef struct {
     bool write_finished;
 } window_t;
 
-window_t* window_new(window_type type);
+window_t* window_new(window_type type, uint8_t initial_capacity);
 
 void window_del(window_t* window);
-
-bool window_resize_if_needed(window_t* window, const uint8_t size);
 
 bool window_is_full(window_t* window);
 

@@ -55,11 +55,11 @@
     }
 
 #ifdef _DEBUG
-#define TEST_FAILED(test_name, number_of_tests_failed) \
-    ERROR("%s: %d test(s) failed.\n", test_name, number_of_tests_failed);
+#define TEST_FAILED(test_name, number_of_tests, number_of_tests_failed) \
+    ERROR("%s: %ld test(s) out of %ld failed.\n", test_name, number_of_tests_failed, number_of_tests);
 #else
-#define TEST_FAILED(test_name, number_of_tests_failed) \
-    ERROR("%s: %d test(s) failed. Try -D_DEBUG flag for more info.\n", test_name, number_of_tests_failed);
+#define TEST_FAILED(test_name, number_of_tests, number_of_tests_failed) \
+    ERROR("%s: %ld test(s) out of %ld failed. Try -D_DEBUG flag for more info.\n", test_name, number_of_tests_failed, number_of_tests);
 #endif
 
 #define TEST_SUCCESS(test_name, number_of_tests) \

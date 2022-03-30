@@ -3,6 +3,7 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 
 const char* real_address(const char* address, struct sockaddr* rval)
@@ -14,7 +15,9 @@ const char* real_address(const char* address, struct sockaddr* rval)
         return gai_strerror(ret);
     }
 
-    *rval = *res->ai_addr;
+    memcpy(rval, res->ai_addr, sizeof(struct sockaddr));
+
+    freeaddrinfo(res);
 
     return NULL;
 }

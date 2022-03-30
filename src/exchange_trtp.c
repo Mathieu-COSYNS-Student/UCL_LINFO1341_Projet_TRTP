@@ -32,7 +32,7 @@ bool read_file(FILE* input, window_t* send_window)
             }
         }
 
-        DEBUG("%d byte(s) read from input", nb_read);
+        DEBUG("%3d byte(s) read from input", nb_read);
 
         if (!window_add_data_pkt(send_window, buffer, nb_read)) {
             ERROR("Attempt to add data pkt to a full window");
@@ -83,7 +83,7 @@ bool trtp_send(const int sfd, window_t* send_window, window_t* recv_window, stat
 
     ssize_t send_len = send(sfd, buffer, buffer_len, 0);
 
-    DEBUG("%ld byte(s) sent. Expected: %ld", send_len, buffer_len);
+    DEBUG("%3ld byte(s) sent. type=%d, seqnum=%d", send_len, pkt_get_type(pkt), pkt_get_seqnum(pkt));
 
     if (send_len < 0) {
         ERROR("Couldn't send to sfd: %s", strerror(errno));
@@ -110,7 +110,9 @@ bool trtp_recv(const int sfd, window_t* send_window, window_t* recv_window, stat
     pkt_status_code ret = pkt_decode(buffer, recv_len, pkt);
 
     if (ret != PKT_OK) {
-        return false;
+        DEBUG("Received a corrupted packet. error=%d", ret);
+        pkt_del(pkt);
+        return true;
     }
 
     window_update_from_received_pkt(send_window, pkt, statistics);
@@ -135,8 +137,8 @@ void exchange_trtp(const int sfd, FILE* input, FILE* output, const trtp_options_
         input_poll_index = fds_len;
         fds_len++;
 
-        send_window = window_new(SEND_WINDOW);
-        if (!window_resize_if_needed(send_window, 5)) {
+        send_window = window_new(SEND_WINDOW, 5);
+        if (!send_window) {
             stop = true;
         } else {
             send_window->peer_size = 1;
@@ -147,8 +149,8 @@ void exchange_trtp(const int sfd, FILE* input, FILE* output, const trtp_options_
         output_poll_index = fds_len;
         fds_len++;
 
-        recv_window = window_new(RECV_WINDOW);
-        if (!window_resize_if_needed(recv_window, 5)) {
+        recv_window = window_new(RECV_WINDOW, 5);
+        if (!recv_window) {
             stop = true;
         }
     }
@@ -186,6 +188,7 @@ void exchange_trtp(const int sfd, FILE* input, FILE* output, const trtp_options_
         if (recv_window && recv_window->shutdown_time != -1) {
             long current_time = get_time_in_milliseconds();
             if (recv_window->shutdown_time < current_time) {
+                DEBUG("Shuting down gracefully");
                 recv_window->read_finished = true;
             }
         }
@@ -225,6 +228,7 @@ void exchange_trtp(const int sfd, FILE* input, FILE* output, const trtp_options_
 
             if (fds[SFD_IN].revents & POLLIN) {
                 fds[SFD_IN].revents = 0;
+                DEBUG("trtp_recv");
 
                 if (!trtp_recv(sfd, send_window, recv_window, statistics)) {
                     stop = true;

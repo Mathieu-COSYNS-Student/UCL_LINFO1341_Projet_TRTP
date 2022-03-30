@@ -407,7 +407,7 @@ bool assert_encode_decode(pkt_assertion_t* pkt_assertion)
 
 int run_packet_tests()
 {
-    int number_of_tests_failed = 0;
+    size_t number_of_tests_failed = 0;
     size_t i = 0;
 
     while (set_assertion_lookup_table[i]) {
@@ -425,7 +425,7 @@ int run_packet_tests()
     char* test_name = "Packet tests";
 
     if (number_of_tests_failed) {
-        TEST_FAILED(test_name, number_of_tests_failed);
+        TEST_FAILED(test_name, i, number_of_tests_failed);
         return EXIT_FAILURE;
     }
 

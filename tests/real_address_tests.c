@@ -33,7 +33,7 @@ int run_real_address_tests()
     };
 
     size_t i = 0;
-    int number_of_tests_failed = 0;
+    size_t number_of_tests_failed = 0;
     struct sockaddr* rval = (struct sockaddr*)malloc(sizeof(struct sockaddr));
 
     for (; i < ADDRS_LEN; i++) {
@@ -51,7 +51,7 @@ int run_real_address_tests()
     char* test_name = "Real address tests";
 
     if (number_of_tests_failed) {
-        TEST_FAILED(test_name, number_of_tests_failed);
+        TEST_FAILED(test_name, i, number_of_tests_failed);
         return EXIT_FAILURE;
     }
 

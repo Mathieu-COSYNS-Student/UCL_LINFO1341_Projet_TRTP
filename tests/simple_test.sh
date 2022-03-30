@@ -41,6 +41,7 @@ sleep 5 # On attend 5 seconde que le receiver finisse
 if kill -0 $receiver_pid &> /dev/null ; then
   echo "Le receiver ne s'est pas arreté à la fin du transfert!"
   kill -9 $receiver_pid
+  wait $receiver_pid 2>/dev/null
   err=1
 else  # On teste la valeur de retour du receiver
   if ! wait $receiver_pid ; then

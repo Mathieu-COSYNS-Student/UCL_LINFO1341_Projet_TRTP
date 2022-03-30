@@ -62,15 +62,7 @@ int main(int argc, char** argv)
     INFO("Sender has following arguments: filename is %s, stats_filename is %s, fec_enabled is %d, receiver_ip is %s, receiver_port is %u",
         filename, stats_filename, options.fec_enabled, receiver_ip, receiver_port);
 
-    FILE* input = NULL;
-
-    if (filename) {
-        input = fopen(filename, "r");
-    } else {
-        input = stdin;
-    }
-
-    struct sockaddr_storage receiver_addr;
+    struct sockaddr_storage receiver_addr = { 0 };
     const char* err = real_address(receiver_ip, (struct sockaddr*)&receiver_addr);
     if (err) {
         ERROR("Could not resolve hostname \"%s\": %s\n", receiver_ip, err);
@@ -84,11 +76,23 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
+    FILE* input = NULL;
+
+    if (filename) {
+        input = fopen(filename, "r");
+    } else {
+        input = stdin;
+    }
+
     statistics_t statistics = {
         0,
     };
 
     exchange_trtp(sfd, input, NULL, &options, &statistics);
+
+    if (filename) {
+        fclose(input);
+    }
 
     if (!write_sender_stats(stats_filename, &statistics))
         perror("Could not write stats file.");

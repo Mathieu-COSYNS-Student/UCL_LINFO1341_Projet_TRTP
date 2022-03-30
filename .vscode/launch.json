@@ -9,7 +9,7 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/sender",
-      "args": ["-f", "${workspaceFolder}/Makefile", "::", "8888"],
+      "args": ["-f", "${workspaceFolder}/input_file", "::", "1341"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
@@ -35,7 +35,7 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/receiver",
-      "args": ["::", "2456"],
+      "args": ["-f", "${workspaceFolder}/output_file", "::", "2456"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
@@ -54,6 +54,32 @@
         }
       ],
       "preLaunchTask": "make debug",
+      "miDebuggerPath": "/usr/bin/gdb"
+    },
+    {
+      "name": "test",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/test",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "make test",
       "miDebuggerPath": "/usr/bin/gdb"
     }
   ]

@@ -7,16 +7,17 @@
 
 CC								:= gcc
 DEBUG_FLAGS				:= -D_DEBUG -g
-CFLAGS						:= -std=gnu99 -pedantic -Wvla -Wall -Werror -Wextra -Wshadow -D_COLOR $(DEBUG_FLAGS)
+sCOLOR_FLAGS				:= -D_COLOR
+CFLAGS						:= -std=gnu99 -pedantic -Wvla -Wall -Werror -Wextra -Wshadow $(COLOR_FLAGS) $(DEBUG_FLAGS)
 LDFLAGS						:= -lz -lm
 
 # Adapt these as you want to fit with your project
 COMMON_SOURCES		:= $(wildcard src/log.c src/packet.c src/xxd.c src/statistics.c src/real_address.c \
 																src/create_socket.c src/read_write_loop.c src/wait_for_client.c \
-																src/exchange_trtp.c src/window.c src/utils.c)
+																src/exchange_trtp.c src/window.c src/utils.c src/queue.c)
 SENDER_SOURCES		:= $(wildcard src/sender.c)
 RECEIVER_SOURCES	:= $(wildcard src/receiver.c)
-TEST_SOURCES			:= $(wildcard tests/test.c tests/packet_tests.c tests/real_address_tests.c)
+TEST_SOURCES			:= $(wildcard tests/test.c tests/packet_tests.c tests/real_address_tests.c tests/queue_tests.c)
 
 COMMON_OBJECTS		:= $(COMMON_SOURCES:.c=.o)
 SENDER_OBJECTS		:= $(SENDER_SOURCES:.c=.o)
