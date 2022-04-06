@@ -20,6 +20,7 @@ typedef enum {
     PKT_NEED_ACK,
     PKT_ACK_OK,
     PKT_PREPARED,
+    PKT_TRUNCATED,
 } pkt_window_status;
 
 typedef struct {

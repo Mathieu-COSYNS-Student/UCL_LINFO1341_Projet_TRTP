@@ -67,9 +67,9 @@ pkt_t* pkt_new();
 void pkt_del(pkt_t*);
 
 /*
- * Retourne la longueur du header en bytes.
+ * Copy pkt to a new address
  */
-ssize_t predict_header_length(const pkt_t* pkt);
+pkt_t* pkt_copy(pkt_t*);
 
 /*
  * Décode des données reçues et crée une nouvelle structure pkt.

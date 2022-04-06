@@ -40,9 +40,19 @@ bool window_is_full(window_t* window)
 
 bool window_are_pkt_same(window_t* window, size_t index, pkt_t* pkt)
 {
-    // TODO debug
     pkt_window_element* element = queue_get_item(window->queue, index);
-    return !memcmp(&element->pkt, pkt, sizeof(pkt_t));
+    pkt_t* new_pkt_1 = pkt_copy(&element->pkt);
+    pkt_t* new_pkt_2 = pkt_copy(pkt);
+
+    pkt_set_timestamp(new_pkt_1, 0);
+    pkt_set_timestamp(new_pkt_2, 0);
+
+    bool result = !memcmp(new_pkt_1, new_pkt_2, sizeof(pkt_t));
+
+    pkt_del(new_pkt_1);
+    pkt_del(new_pkt_2);
+
+    return result;
 }
 
 bool window_is_valid(window_t* window)
@@ -173,7 +183,11 @@ pkt_t* next_pkt_send_window(window_t* window, statistics_t* statistics)
     bool waiting_for_ack;
     for (size_t i = 0; i < fminl(window->peer_size, queue_get_size(window->queue)); i++) {
         pkt_window_element* element = queue_get_item(window->queue, i);
-        if (element->status == PKT_PREPARED) {
+        if (element->status == PKT_PREPARED || element->status == PKT_TRUNCATED) {
+            if (element->status == PKT_TRUNCATED) {
+                statistics->packet_retransmitted++;
+            }
+
             element->status = PKT_NEED_ACK;
             return build_next_pkt_send_window(element);
         } else if (element->status == PKT_NEED_ACK) {
@@ -182,6 +196,7 @@ pkt_t* next_pkt_send_window(window_t* window, statistics_t* statistics)
 
             if (((long)pkt_get_timestamp(&element->pkt)) + WINDOW_RESTRANMISSION_TIMEOUT <= time) {
 
+                DEBUG("Retransmission timer expired for packet #%d", pkt_get_seqnum(&element->pkt));
                 statistics->packet_retransmitted++;
 
                 return build_next_pkt_send_window(element);
@@ -210,6 +225,16 @@ pkt_t* build_next_pkt_recv_window(window_t* window, ptypes_t pkt_type)
     return pkt;
 }
 
+void print_window(window_t* window)
+{
+    fprintf(stderr, "seqnum_in_window: ");
+    for (size_t i = 0; i < queue_get_size(window->queue); i++) {
+        pkt_window_element* element = queue_get_item(window->queue, i);
+        fprintf(stderr, "[%ld]: seqnum=%d, status=%d, ", i, pkt_get_seqnum(&element->pkt), element->status);
+    }
+    fprintf(stderr, "\n");
+}
+
 pkt_t* next_pkt_recv_window(window_t* window)
 {
     if (queue_is_empty(window->queue))
@@ -234,6 +259,7 @@ pkt_t* next_pkt_recv_window(window_t* window)
             }
 
             if (element->status == PKT_TO_NACK) {
+                element->status = EMPTY_SLOT;
                 pkt = build_next_pkt_recv_window(window, PTYPE_NACK);
                 pkt_set_seqnum(pkt, element->pkt.seqnum);
                 break;
@@ -260,15 +286,6 @@ pkt_t* next_pkt(window_t* window, statistics_t* statistics)
     return next_pkt_recv_window(window);
 }
 
-void print_seqnum_in_window(window_t* window)
-{
-    fprintf(stderr, "seqnum_in_window: ");
-    for (size_t i = 0; i < queue_get_size(window->queue); i++) {
-        fprintf(stderr, "%ld=%d, ", i, pkt_get_seqnum(queue_get_item(window->queue, i)));
-    }
-    fprintf(stderr, "\n");
-}
-
 void window_update_from_received_pkt(window_t* window, pkt_t* pkt, statistics_t* statistics)
 {
     if (!window_is_valid(window))
@@ -276,10 +293,11 @@ void window_update_from_received_pkt(window_t* window, pkt_t* pkt, statistics_t*
 
     ptypes_t type = pkt_get_type(pkt);
     uint8_t seqnum = pkt_get_seqnum(pkt);
-    if (window->type == SEND_WINDOW)
+    if (window->type == SEND_WINDOW && type == PTYPE_ACK)
         seqnum--;
     int window_index = window_get_index_for_seqnum(window, seqnum);
-    DEBUG("Packet received with window_seqnum=%d seqnum=%d, index=%d", window->seqnum, pkt_get_seqnum(pkt), window_index);
+    DEBUG("Packet #%d received with type=%d, tr=%d, window_seqnum=%d, index=%d",
+        pkt_get_seqnum(pkt), type, pkt_get_tr(pkt), window->seqnum, window_index);
 
     if (window_index != -1) {
         if (window->type == SEND_WINDOW) {
@@ -298,7 +316,9 @@ void window_update_from_received_pkt(window_t* window, pkt_t* pkt, statistics_t*
                         window->read_finished = true;
                     }
                 } else if (type == PTYPE_NACK) {
-                    ((pkt_window_element*)queue_get_item(window->queue, window_index))->status = PKT_PREPARED;
+                    pkt_window_element* element = queue_get_item(window->queue, window_index);
+                    if (element->status != PKT_ACK_OK)
+                        element->status = PKT_TRUNCATED;
                 }
                 update_stats_rtt(0, statistics);
                 return;
@@ -311,11 +331,14 @@ void window_update_from_received_pkt(window_t* window, pkt_t* pkt, statistics_t*
                     return;
                 }
 
+                pkt_window_element* previous = queue_get_item(window->queue, window_index);
+
                 if (type == PTYPE_DATA) {
-                    pkt_window_element element;
+                    pkt_window_element element = { 0 };
                     element.pkt = *pkt;
                     if (pkt_get_tr(pkt)) {
-                        element.status = PKT_TO_NACK;
+                        if (previous->status == EMPTY_SLOT)
+                            element.status = PKT_TO_NACK;
                     } else {
                         element.status = PKT_TO_ACK;
                         if (pkt_get_length(pkt) == 0) {
@@ -323,7 +346,7 @@ void window_update_from_received_pkt(window_t* window, pkt_t* pkt, statistics_t*
                         }
                     }
 
-                    if (queue_enqueue_at_index(window->queue, &element, window_index)) {
+                    if (element.status != EMPTY_SLOT && queue_enqueue_at_index(window->queue, &element, window_index)) {
                         window->last_used_pkt_timestamp = pkt_get_timestamp(pkt);
                     }
                 } else if (type == PTYPE_FEC) {

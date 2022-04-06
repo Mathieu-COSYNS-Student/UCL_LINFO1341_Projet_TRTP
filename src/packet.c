@@ -52,6 +52,24 @@ void pkt_del(pkt_t* pkt)
     free(pkt);
 }
 
+pkt_t* pkt_copy(pkt_t* pkt)
+{
+    pkt_t* new_pkt = pkt_new();
+    if (!new_pkt)
+        return NULL;
+
+    memcpy(new_pkt, pkt, sizeof(pkt_t));
+
+    return new_pkt;
+}
+
+ssize_t predict_header_length(const pkt_t* pkt)
+{
+    if (pkt_is_ack_nack(pkt))
+        return PKT_MIN_HEADERLEN;
+    return PKT_MAX_HEADERLEN;
+}
+
 pkt_status_code pkt_decode(const char* data, const size_t len, pkt_t* pkt)
 {
     if (len < PKT_MIN_HEADERLEN)
@@ -253,11 +271,4 @@ pkt_status_code pkt_set_payload(pkt_t* pkt,
     memcpy(pkt->payload, data, length);
 
     return PKT_OK;
-}
-
-ssize_t predict_header_length(const pkt_t* pkt)
-{
-    if (pkt_is_ack_nack(pkt))
-        return PKT_MIN_HEADERLEN;
-    return PKT_MAX_HEADERLEN;
 }

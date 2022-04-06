@@ -1,13 +1,20 @@
 #!/bin/bash
 
 if [ -z "$TEST_NUMBER" ]; then
-  echo "No test number set. => test ignored"
+  echo "No test number set. => test ignored" >&2
   exit 1
 fi
 
-echo "Test #$TEST_NUMBER"
+re='^[0-9]+$'
+if ! [[ "$TEST_NUMBER" =~ $re ]]; then
+  echo "TEST_NUMBER is not a number" >&2
+  exit 1
+fi
+
+rm -rf "logs/test_$TEST_NUMBER/"
 mkdir -p "logs/test_$TEST_NUMBER/"
 
+INFO_FILE="logs/test_$TEST_NUMBER/info_file"
 INPUT_FILE="logs/test_$TEST_NUMBER/input_file"
 OUTPUT_FILE="logs/test_$TEST_NUMBER/received_file"
 LINK_SIM_LOG="logs/test_$TEST_NUMBER/link.log"
@@ -15,6 +22,12 @@ SENDER_LOG="logs/test_$TEST_NUMBER/sender.log"
 RECEIVER_LOG="logs/test_$TEST_NUMBER/receiver.log"
 VALGRIND_SENDER_LOG="logs/test_$TEST_NUMBER/valgrind_sender.log"
 VALGRIND_RECEIVER_LOG="logs/test_$TEST_NUMBER/valgrind_receiver.log"
+
+PORT1=`comm -23 <(seq 8000 8888 | sort) <(ss -Huan | awk '{print $4}' | cut -d':' -f2 | sort -u) | shuf | head -n 1`
+PORT2=`comm -23 <(seq 8000 8888 | sort) <(ss -Huan | awk '{print $4}' | cut -d':' -f2 | sort -u) | shuf | head -n 1`
+
+echo "Test #$TEST_NUMBER" >> "$INFO_FILE"
+# echo "PORT1=$PORT1, PORT2=$PORT2" >> "$INFO_FILE"
 
 if [ -z "$FILE" ]; then
   if [ -z "$FILE_SIZE" ]; then
@@ -33,38 +46,38 @@ if [ ! -z "$VALGRIND" ] ; then
 fi
 
 # On lance le simulateur de lien avec 10% de pertes et un délais de 50ms
-./link_sim -p 1341 -P 2456 $LINK_SIM_ARGS &> "$LINK_SIM_LOG" &
+./link_sim -p $PORT1 -P $PORT2 $LINK_SIM_ARGS &> "$LINK_SIM_LOG" &
 link_pid=$!
 
 # On lance le receiver et capture sa sortie standard
-$valgrind_receiver ./receiver :: 2456 > "$OUTPUT_FILE" 2> "$RECEIVER_LOG" &
+$valgrind_receiver ./receiver :: $PORT2 > "$OUTPUT_FILE" 2> "$RECEIVER_LOG" &
 receiver_pid=$!
 
 cleanup()
 {
-  kill -9 $receiver_pid
-  kill -9 $link_pid
+  kill -9 $receiver_pid &> /dev/null
+  kill -9 $link_pid &> /dev/null
   exit 0
 }
-trap cleanup SIGINT  # Kill les process en arrière plan en cas de ^-C
+trap cleanup INT TERM # Kill les process en arrière plan en cas de ^-C
 
 # On démarre le transfert
-if ! $valgrind_sender ./sender ::1 1341 < "$INPUT_FILE" 2> "$SENDER_LOG" ; then
-  echo "Crash du sender!"
+if ! $valgrind_sender ./sender ::1 $PORT1 < "$INPUT_FILE" 2> "$SENDER_LOG" ; then
+  echo "Crash du sender!  <------------------------------" >> "$INFO_FILE"
   # cat "$SENDER_LOG"
   err=1  # On enregistre l'erreur
 fi
 
-sleep 5 # On attend 5 seconde que le receiver finisse
+sleep 6 # On attend 6 seconde que le receiver finisse
 
 if kill -0 $receiver_pid &> /dev/null ; then
-  echo "Le receiver ne s'est pas arreté à la fin du transfert!"
+  echo "Le receiver ne s'est pas arreté à la fin du transfert!  <------------------------------" >> "$INFO_FILE"
   kill -9 $receiver_pid
   wait $receiver_pid 2>/dev/null
   err=1
 else  # On teste la valeur de retour du receiver
   if ! wait $receiver_pid ; then
-    echo "Crash du receiver!"
+    echo "Crash du receiver!  <------------------------------" >> "$INFO_FILE"
     # cat "$RECEIVER_LOG"
     err=1
   fi
@@ -78,11 +91,13 @@ fi
 
 # On vérifie que le transfert s'est bien déroulé
 if [[ `md5sum "$INPUT_FILE" | awk '{print $1}'` != `md5sum "$OUTPUT_FILE" | awk '{print $1}'` ]]; then
-  echo "Le transfert a corrompu le fichier!"
-  # echo "Diff binaire des deux fichiers: (attendu vs produit)"
-  # diff -C 9 <(od -Ax -t x1z "$INPUT_FILE") <(od -Ax -t x1z "$OUTPUT_FILE")
+  echo "Le transfert a corrompu le fichier!  <------------------------------" >> "$INFO_FILE"
+  # echo "Diff binaire des deux fichiers: (attendu vs produit)" >> "$INFO_FILE"
+  # diff -C 9 <(od -Ax -t x1z "$INPUT_FILE") <(od -Ax -t x1z "$OUTPUT_FILE") >> "$INFO_FILE"
+  cat "$INFO_FILE"
   exit 1
 else
-  echo "Le transfert est réussi!"
+  echo "Le transfert est réussi!" >> "$INFO_FILE"
+  cat "$INFO_FILE"
   exit ${err:-0}  # En cas d'erreurs avant, on renvoie le code d'erreur
 fi
