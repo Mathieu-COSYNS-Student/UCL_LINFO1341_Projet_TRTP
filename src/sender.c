@@ -6,10 +6,10 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "address.h"
 #include "create_socket.h"
 #include "exchange_trtp.h"
 #include "log.h"
-#include "real_address.h"
 #include "statistics.h"
 
 int print_usage(char* prog_name)
@@ -68,6 +68,7 @@ int main(int argc, char** argv)
         ERROR("Could not resolve hostname \"%s\": %s\n", receiver_ip, err);
         return EXIT_FAILURE;
     }
+    print_ip(receiver_ip, &receiver_addr);
 
     int sfd = create_socket(NULL, -1, (struct sockaddr*)&receiver_addr, receiver_port);
 
@@ -87,6 +88,7 @@ int main(int argc, char** argv)
     statistics_t statistics = {
         0,
     };
+    statistics.min_rtt = SIZE_MAX;
 
     exchange_trtp(sfd, input, NULL, &options, &statistics);
 

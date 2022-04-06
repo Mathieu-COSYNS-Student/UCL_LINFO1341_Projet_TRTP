@@ -114,7 +114,7 @@ void update_stats_from_valid_pkt_received(pkt_t* pkt, statistics_t* statistics)
     }
 }
 
-void update_stats_rtt(long rtt, statistics_t* statistics)
+void update_stats_rtt(size_t rtt, statistics_t* statistics)
 {
     if (rtt < statistics->min_rtt)
         statistics->min_rtt = rtt;

@@ -54,8 +54,8 @@ int window_get_index_for_seqnum(window_t* window, uint8_t seqnum)
 {
     uint8_t first_seqnum = window->seqnum;
     uint8_t last_seqnum = window->seqnum + queue_get_capacity(window->queue);
-    if (window->type == SEND_WINDOW)
-        last_seqnum--;
+    // if (window->type == SEND_WINDOW)
+    //     last_seqnum--;
     bool overflow = first_seqnum > last_seqnum;
     if (!overflow) {
         if (seqnum >= first_seqnum && seqnum < last_seqnum) {
@@ -144,7 +144,7 @@ pkt_t* window_slide_if_possible(window_t* window, uint8_t shift)
     element = queue_dequeue_from_start_to_index(window->queue, shift - 1);
 
     if (pkt_get_length(&element->pkt) != 0)
-        window->seqnum = window->seqnum + ((uint8_t)1);
+        window->seqnum = window->seqnum + shift;
 
     pkt_t* pkt = pkt_new();
 
@@ -170,12 +170,14 @@ pkt_t* build_next_pkt_send_window(pkt_window_element* element)
 
 pkt_t* next_pkt_send_window(window_t* window, statistics_t* statistics)
 {
+    bool waiting_for_ack;
     for (size_t i = 0; i < fminl(window->peer_size, queue_get_size(window->queue)); i++) {
         pkt_window_element* element = queue_get_item(window->queue, i);
         if (element->status == PKT_PREPARED) {
             element->status = PKT_NEED_ACK;
             return build_next_pkt_send_window(element);
         } else if (element->status == PKT_NEED_ACK) {
+            waiting_for_ack = true;
             long time = get_time_in_milliseconds();
 
             if (((long)pkt_get_timestamp(&element->pkt)) + WINDOW_RESTRANMISSION_TIMEOUT <= time) {
@@ -185,7 +187,11 @@ pkt_t* next_pkt_send_window(window_t* window, statistics_t* statistics)
                 return build_next_pkt_send_window(element);
             }
         } else {
+            if (waiting_for_ack && element->status == PKT_ACK_OK) {
+                return NULL;
+            }
             ERROR("There is a unexpected packet in the sending window at index %ld. status=%d", i, element->status);
+            DEBUG_DUMP(queue_get_item(window->queue, 0), queue_get_size(window->queue) * sizeof(pkt_window_element));
             exit(1);
             return NULL;
         }
@@ -198,7 +204,7 @@ pkt_t* build_next_pkt_recv_window(window_t* window, ptypes_t pkt_type)
 {
     pkt_t* pkt = pkt_new();
     pkt_set_type(pkt, pkt_type);
-    pkt_set_window(pkt, queue_get_capacity(window->queue));
+    pkt_set_window(pkt, queue_get_capacity(window->queue) - 1);
     pkt_set_timestamp(pkt, window->last_used_pkt_timestamp);
 
     return pkt;
@@ -254,6 +260,15 @@ pkt_t* next_pkt(window_t* window, statistics_t* statistics)
     return next_pkt_recv_window(window);
 }
 
+void print_seqnum_in_window(window_t* window)
+{
+    fprintf(stderr, "seqnum_in_window: ");
+    for (size_t i = 0; i < queue_get_size(window->queue); i++) {
+        fprintf(stderr, "%ld=%d, ", i, pkt_get_seqnum(queue_get_item(window->queue, i)));
+    }
+    fprintf(stderr, "\n");
+}
+
 void window_update_from_received_pkt(window_t* window, pkt_t* pkt, statistics_t* statistics)
 {
     if (!window_is_valid(window))
@@ -265,66 +280,61 @@ void window_update_from_received_pkt(window_t* window, pkt_t* pkt, statistics_t*
         seqnum--;
     int window_index = window_get_index_for_seqnum(window, seqnum);
     DEBUG("Packet received with window_seqnum=%d seqnum=%d, index=%d", window->seqnum, pkt_get_seqnum(pkt), window_index);
-    if (window_index == -1) {
-        return;
-    }
 
-    if (window->type == SEND_WINDOW) {
-        uint8_t peer_size = pkt_get_window(pkt);
-        if (queue_resize(window->queue, peer_size)) {
-            window->peer_size = peer_size;
-        }
+    if (window_index != -1) {
+        if (window->type == SEND_WINDOW) {
+            if (type == PTYPE_ACK || type == PTYPE_NACK) {
+                uint8_t peer_size = pkt_get_window(pkt);
+                queue_resize(window->queue, peer_size);
+                window->peer_size = peer_size;
 
-        if (type == PTYPE_ACK) {
-            for (int i = 0; i <= window_index; i++) {
-                ((pkt_window_element*)queue_get_item(window->queue, i))->status = PKT_ACK_OK;
-            }
-            free(window_slide_if_possible(window, window_index + 1));
+                if (type == PTYPE_ACK) {
+                    for (int i = 0; i <= window_index; i++) {
+                        ((pkt_window_element*)queue_get_item(window->queue, i))->status = PKT_ACK_OK;
+                    }
+                    free(window_slide_if_possible(window, window_index + 1));
 
-            if (window->write_finished && queue_is_empty(window->queue)) {
-                window->read_finished = true;
-            }
-
-        } else if (type == PTYPE_NACK) {
-            ((pkt_window_element*)queue_get_item(window->queue, window_index))->status = PKT_PREPARED;
-        } else {
-            return;
-        }
-
-        update_stats_rtt(0, statistics);
-
-    } else if (window->type == RECV_WINDOW) {
-        if (type == PTYPE_DATA) {
-            pkt_window_element element;
-            element.pkt = *pkt;
-            if (pkt_get_tr(pkt)) {
-                element.status = PKT_TO_NACK;
-            } else {
-                element.status = PKT_TO_ACK;
-                if (pkt_get_length(pkt) == 0) {
-                    window->shutdown_time = get_time_in_milliseconds() + WINDOW_SHUTDOWN_TIMEOUT;
+                    if (window->write_finished && queue_is_empty(window->queue)) {
+                        window->read_finished = true;
+                    }
+                } else if (type == PTYPE_NACK) {
+                    ((pkt_window_element*)queue_get_item(window->queue, window_index))->status = PKT_PREPARED;
                 }
+                update_stats_rtt(0, statistics);
+                return;
             }
+        } else if (window->type == RECV_WINDOW) {
+            if (type == PTYPE_DATA || type == PTYPE_FEC) {
 
-            if (window_are_pkt_same(window, window_index, pkt)) {
-                statistics->packet_duplicated++;
-            }
+                if (window_are_pkt_same(window, window_index, pkt)) {
+                    statistics->packet_duplicated++;
+                    return;
+                }
 
-            if (queue_enqueue_at_index(window->queue, &element, window_index)) {
-                window->last_used_pkt_timestamp = pkt_get_timestamp(pkt);
-            }
+                if (type == PTYPE_DATA) {
+                    pkt_window_element element;
+                    element.pkt = *pkt;
+                    if (pkt_get_tr(pkt)) {
+                        element.status = PKT_TO_NACK;
+                    } else {
+                        element.status = PKT_TO_ACK;
+                        if (pkt_get_length(pkt) == 0) {
+                            window->shutdown_time = get_time_in_milliseconds() + WINDOW_SHUTDOWN_TIMEOUT;
+                        }
+                    }
 
-            return;
-        } else if (type == PTYPE_FEC) {
-            // TODO
-            if (0) {
-                statistics->packet_duplicated++;
+                    if (queue_enqueue_at_index(window->queue, &element, window_index)) {
+                        window->last_used_pkt_timestamp = pkt_get_timestamp(pkt);
+                    }
+                } else if (type == PTYPE_FEC) {
+                    // TODO
+                    if (0) {
+                        window->last_used_pkt_timestamp = pkt_get_timestamp(pkt);
+                        statistics->packet_recovered++;
+                    }
+                }
+                return;
             }
-            if (0) {
-                window->last_used_pkt_timestamp = pkt_get_timestamp(pkt);
-                statistics->packet_recovered++;
-            }
-            return;
         }
     }
 

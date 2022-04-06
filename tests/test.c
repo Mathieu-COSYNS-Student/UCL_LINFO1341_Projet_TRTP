@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "address_tests.h"
 #include "packet_tests.h"
 #include "queue_tests.h"
-#include "real_address_tests.h"
 
 typedef int (*TestsCallback)();
 TestsCallback tests[] = {
@@ -22,7 +22,7 @@ int main()
         success = success && test_result == EXIT_SUCCESS;
     }
 
-    if (success)
+    if (!success)
         return EXIT_FAILURE;
 
     return EXIT_SUCCESS;

@@ -77,7 +77,7 @@ bool trtp_send(const int sfd, window_t* send_window, window_t* recv_window, stat
     pkt_status_code ret = pkt_encode(pkt, buffer, &buffer_len);
 
     if (ret != PKT_OK) {
-        ERROR("Received packet is corrupted. status=%d", ret);
+        ERROR("Packet encoding failed. status=%d", ret);
         return false;
     }
 
@@ -111,10 +111,11 @@ bool trtp_recv(const int sfd, window_t* send_window, window_t* recv_window, stat
 
     if (ret != PKT_OK) {
         DEBUG("Received a corrupted packet. error=%d", ret);
-        if(ret == E_LENGTH)  {
+        if (ret == E_LENGTH) {
             DEBUG("recv_len=%ld", recv_len);
         }
         pkt_del(pkt);
+        statistics->packet_ignored++;
         return true;
     }
 
@@ -201,7 +202,7 @@ void exchange_trtp(const int sfd, FILE* input, FILE* output, const trtp_options_
         }
 
         // Wait 1 seconds
-        int ret = poll(fds, fds_len, 1000); // TODO: Check this for network latency
+        int ret = poll(fds, fds_len, 1000);
 
         // Check if poll actually succeed
         if (ret == -1) {
@@ -231,7 +232,6 @@ void exchange_trtp(const int sfd, FILE* input, FILE* output, const trtp_options_
 
             if (fds[SFD_IN].revents & POLLIN) {
                 fds[SFD_IN].revents = 0;
-                DEBUG("trtp_recv");
 
                 if (!trtp_recv(sfd, send_window, recv_window, statistics)) {
                     stop = true;

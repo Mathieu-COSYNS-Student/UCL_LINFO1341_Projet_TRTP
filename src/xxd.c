@@ -1,3 +1,5 @@
+#include "xxd.h"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -10,17 +12,17 @@ void hexDump(size_t offset, void* addr, int len)
     for (i = 0; i < len; i++) {
         if ((i % 16) == 0) {
             if (i != 0)
-                printf(" %s\n", bufferLine);
+                fprintf(stderr, " %s\n", bufferLine);
             // Bogus test for zero bytes!
             // if (pc[i] == 0x00)
             //    exit(0);
-            printf("%08zx: ", offset);
+            fprintf(stderr, "%08zx: ", offset);
             offset += (i % 16 == 0) ? 16 : i % 16;
         }
 
-        printf("%02x", pc[i]);
+        fprintf(stderr, "%02x", pc[i]);
         if ((i % 2) == 1)
-            printf(" ");
+            fprintf(stderr, " ");
 
         if ((pc[i] < 0x20) || (pc[i] > 0x7e)) {
             bufferLine[i % 16] = '.';
@@ -32,10 +34,10 @@ void hexDump(size_t offset, void* addr, int len)
     }
 
     while ((i % 16) != 0) {
-        printf("  ");
+        fprintf(stderr, "  ");
         if (i % 2 == 1)
             putchar(' ');
         i++;
     }
-    printf(" %s\n", bufferLine);
+    fprintf(stderr, " %s\n", bufferLine);
 }

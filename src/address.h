@@ -1,8 +1,13 @@
-#ifndef __REAL_ADDRESS_H_
-#define __REAL_ADDRESS_H_
+#ifndef __ADDRESS_H_
+#define __ADDRESS_H_
 
 #include <netinet/in.h> /* * sockaddr_in6 */
+#include <stdbool.h>
 #include <sys/types.h> /* sockaddr_in6 */
+
+bool human_readable_ip(char* buffer, const struct sockaddr_storage* addr);
+
+void print_ip(const char* addr_name, const struct sockaddr_storage* addr);
 
 /* Resolve the resource name to an usable IP address
  * @address: The name to resolve
