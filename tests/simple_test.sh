@@ -11,10 +11,24 @@ if ! [[ "$TEST_NUMBER" =~ $re ]]; then
   exit 1
 fi
 
+cleanup()
+{
+  if [ ! -z "$(jobs -pr)" ]; then
+    kill $(jobs -pr)
+  fi
+  wait
+  exit 0
+}
+trap cleanup INT TERM # Kill les process en arrière plan en cas de ^-C
+
+sleep $TEST_NUMBER &
+wait
+
 rm -rf "logs/test_$TEST_NUMBER/"
 mkdir -p "logs/test_$TEST_NUMBER/"
 
 INFO_FILE="logs/test_$TEST_NUMBER/info_file"
+DEBUG_FILE="logs/test_$TEST_NUMBER/debug_file"
 INPUT_FILE="logs/test_$TEST_NUMBER/input_file"
 OUTPUT_FILE="logs/test_$TEST_NUMBER/received_file"
 LINK_SIM_LOG="logs/test_$TEST_NUMBER/link.log"
@@ -27,7 +41,7 @@ PORT1=`comm -23 <(seq 8000 8888 | sort) <(ss -Huan | awk '{print $4}' | cut -d':
 PORT2=`comm -23 <(seq 8000 8888 | sort) <(ss -Huan | awk '{print $4}' | cut -d':' -f2 | sort -u) | shuf | head -n 1`
 
 echo "Test #$TEST_NUMBER" >> "$INFO_FILE"
-# echo "PORT1=$PORT1, PORT2=$PORT2" >> "$INFO_FILE"
+echo "PORT1=$PORT1, PORT2=$PORT2" >> "$DEBUG_FILE"
 
 if [ -z "$FILE" ]; then
   if [ -z "$FILE_SIZE" ]; then
@@ -45,7 +59,6 @@ if [ ! -z "$VALGRIND" ] ; then
   valgrind_receiver="valgrind --leak-check=full --log-file=$VALGRIND_RECEIVER_LOG"
 fi
 
-# On lance le simulateur de lien avec 10% de pertes et un délais de 50ms
 ./link_sim -p $PORT1 -P $PORT2 $LINK_SIM_ARGS &> "$LINK_SIM_LOG" &
 link_pid=$!
 
@@ -53,13 +66,10 @@ link_pid=$!
 $valgrind_receiver ./receiver :: $PORT2 > "$OUTPUT_FILE" 2> "$RECEIVER_LOG" &
 receiver_pid=$!
 
-cleanup()
-{
-  kill -9 $receiver_pid &> /dev/null
-  kill -9 $link_pid &> /dev/null
-  exit 0
-}
-trap cleanup INT TERM # Kill les process en arrière plan en cas de ^-C
+echo "-------------------------------------------" >> "$DEBUG_FILE"
+echo "netstat start" >> "$DEBUG_FILE"
+echo "-------------------------------------------" >> "$DEBUG_FILE"
+netstat -nlptu >> "$DEBUG_FILE" 2>/dev/null
 
 # On démarre le transfert
 if ! $valgrind_sender ./sender ::1 $PORT1 < "$INPUT_FILE" 2> "$SENDER_LOG" ; then
@@ -68,7 +78,9 @@ if ! $valgrind_sender ./sender ::1 $PORT1 < "$INPUT_FILE" 2> "$SENDER_LOG" ; the
   err=1  # On enregistre l'erreur
 fi
 
-sleep 6 # On attend 6 seconde que le receiver finisse
+sleep 6 & # On attend 6 seconde que le receiver finisse
+sleep_pid=$!
+wait $sleep_pid
 
 if kill -0 $receiver_pid &> /dev/null ; then
   echo "Le receiver ne s'est pas arreté à la fin du transfert!  <------------------------------" >> "$INFO_FILE"
@@ -94,10 +106,8 @@ if [[ `md5sum "$INPUT_FILE" | awk '{print $1}'` != `md5sum "$OUTPUT_FILE" | awk 
   echo "Le transfert a corrompu le fichier!  <------------------------------" >> "$INFO_FILE"
   # echo "Diff binaire des deux fichiers: (attendu vs produit)" >> "$INFO_FILE"
   # diff -C 9 <(od -Ax -t x1z "$INPUT_FILE") <(od -Ax -t x1z "$OUTPUT_FILE") >> "$INFO_FILE"
-  cat "$INFO_FILE"
   exit 1
 else
   echo "Le transfert est réussi!" >> "$INFO_FILE"
-  cat "$INFO_FILE"
   exit ${err:-0}  # En cas d'erreurs avant, on renvoie le code d'erreur
 fi
