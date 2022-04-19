@@ -3,12 +3,14 @@
 #include <stdlib.h>
 
 #include "address_tests.h"
+#include "fec_tests.h"
 #include "packet_tests.h"
 #include "queue_tests.h"
 
 typedef int (*TestsCallback)();
 TestsCallback tests[] = {
     &run_packet_tests,
+    &run_fec_tests,
     &run_real_address_tests,
     &run_queue_tests,
     NULL

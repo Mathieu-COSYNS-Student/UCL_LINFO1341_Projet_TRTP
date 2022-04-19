@@ -10,5 +10,8 @@
     "window.h": "c",
     "math.h": "c"
   },
-  "cSpell.words": ["ptypes", "trtp"]
+  "cSpell.words": [
+    "ptypes",
+    "trtp"
+  ]
 }

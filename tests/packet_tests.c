@@ -227,8 +227,7 @@ void set_pkt_assertion_13(pkt_assertion_t* pkt_assertion)
     pkt_set_timestamp(pkt_assertion->pkt, 0x17);
     pkt_set_length(pkt_assertion->pkt, 256);
 
-    pkt_assertion->expected_encoded_len = PKT_MAX_HEADERLEN + 256 + PKT_FOOTERLEN;
-    pkt_assertion->expected_decode_status = E_LENGTH;
+    pkt_assertion->expected_encoded_len = PKT_MAX_HEADERLEN + MAX_PAYLOAD_SIZE + PKT_FOOTERLEN;
 }
 
 void change_crc1_in_buffer_ptype_data(char* buffer, size_t buffer_len)

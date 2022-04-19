@@ -90,11 +90,18 @@ pkt_status_code pkt_decode(const char* data, const size_t len, pkt_t* pkt)
     }
 
     uint16_t payload_len = pkt_get_length(pkt);
-    if ((pkt_has_payload(pkt)
-            && (len > PKT_MAX_HEADERLEN + payload_len + (payload_len ? PKT_FOOTERLEN : 0)
-                || payload_len > MAX_PAYLOAD_SIZE))
-        || (pkt_get_type(pkt) == PTYPE_FEC && payload_len != MAX_PAYLOAD_SIZE))
+
+    if (pkt_get_type(pkt) == PTYPE_FEC) {
+        if (len != PKT_MAX_LEN)
+            return E_LENGTH;
+        payload_len = MAX_PAYLOAD_SIZE;
+    }
+
+    if (pkt_has_payload(pkt)
+        && (len > PKT_MAX_HEADERLEN + payload_len + (payload_len ? PKT_FOOTERLEN : 0)
+            || payload_len > MAX_PAYLOAD_SIZE)) {
         return E_LENGTH;
+    }
 
     ssize_t header_len = predict_header_length(pkt);
     uint32_t crc1 = calc_header_crc(data, header_len - sizeof(uint32_t));
@@ -119,6 +126,9 @@ pkt_status_code pkt_decode(const char* data, const size_t len, pkt_t* pkt)
 pkt_status_code pkt_encode(const pkt_t* pkt, char* buf, size_t* len)
 {
     uint32_t payload_len = pkt_get_length(pkt);
+
+    if (pkt_get_type(pkt) == PTYPE_FEC)
+        payload_len = MAX_PAYLOAD_SIZE;
 
     if (payload_len > MAX_PAYLOAD_SIZE) {
         return E_LENGTH;
@@ -149,7 +159,7 @@ pkt_status_code pkt_encode(const pkt_t* pkt, char* buf, size_t* len)
 
 bool pkt_has_payload(const pkt_t* pkt)
 {
-    return !pkt_get_tr(pkt) && !pkt_is_ack_nack(pkt) && pkt_get_payload(pkt);
+    return !pkt_get_tr(pkt) && !pkt_is_ack_nack(pkt) && pkt_get_payload(pkt) && (pkt_get_length(pkt) || pkt_get_type(pkt) == PTYPE_FEC);
 }
 
 ptypes_t pkt_get_type(const pkt_t* pkt)
@@ -189,9 +199,6 @@ uint32_t pkt_get_crc1(const pkt_t* pkt)
 
 const char* pkt_get_payload(const pkt_t* pkt)
 {
-    if (pkt->length == 0) {
-        return NULL;
-    }
     return pkt->payload;
 }
 
@@ -273,34 +280,55 @@ pkt_status_code pkt_set_payload(pkt_t* pkt,
     return PKT_OK;
 }
 
-pkt_t* pkt_new_fec(const pkt_t* pkts[4])
+pkt_t* pkt_xor(const pkt_t* pkts[4])
 {
-    pkt_t* pkt_fec = pkt_new();
-    if (!pkt_fec)
+    pkt_t* pkt_xor = pkt_new();
+    if (!pkt_xor)
         return NULL;
 
-    char fec_payload[MAX_PAYLOAD_SIZE] = { 0 };
-    uint16_t fec_length = 0;
+    char xor_payload[MAX_PAYLOAD_SIZE] = { 0 };
+    uint16_t xor_length = pkt_get_length(pkts[0]);
+    memcpy(xor_payload, pkt_get_payload(pkts[0]), xor_length);
 
-    for (size_t i = 0; i < 4; i++) {
+    for (size_t i = 1; i < 4; i++) {
         uint16_t current_pkt_length = pkt_get_length(pkts[i]);
-        char* current_pkt_payload = pkt_get_payload(pkts[i]);
+        xor_length ^= current_pkt_length;
+        if (pkt_get_type(pkts[i]) == PTYPE_FEC)
+            current_pkt_length = MAX_PAYLOAD_SIZE;
+        const char* current_pkt_payload = pkt_get_payload(pkts[i]);
 
-        fec_length ^= current_pkt_length;
-        for (size_t i = 0; i < MAX_PAYLOAD_SIZE; i++) {
-            if (i < current_pkt_length)
-                fec_payload[i] ^= current_pkt_payload[i];
+        for (size_t j = 0; j < MAX_PAYLOAD_SIZE; j++) {
+            if (j < current_pkt_length)
+                xor_payload[j] ^= current_pkt_payload[j];
             else
-                fec_payload[i] ^= 0;
+                xor_payload[j] ^= 0;
         }
     }
 
-    pkt_set_length(pkt_fec, fec_length);
-    pkt_set_payload(pkt_fec, fec_payload, MAX_PAYLOAD_SIZE);
+    pkt_set_payload(pkt_xor, xor_payload, MAX_PAYLOAD_SIZE);
+    pkt_set_length(pkt_xor, xor_length);
 
-    return pkt_fec;
+    return pkt_xor;
 }
 
-pkt_t* pkt_from_fec(const pkt_t* pkt_fec, const pkt_t* pkts[3])
+pkt_t* pkt_new_fec(const pkt_t* pkts[4])
 {
+    pkt_t* fec = pkt_xor(pkts);
+    if (!fec)
+        return NULL;
+
+    pkt_set_type(fec, PTYPE_FEC);
+
+    return fec;
+}
+
+pkt_t* pkt_from_fec(const pkt_t* pkts[4])
+{
+    pkt_t* data = pkt_xor(pkts);
+    if (!data)
+        return NULL;
+
+    pkt_set_type(data, PTYPE_DATA);
+
+    return data;
 }
