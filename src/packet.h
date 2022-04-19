@@ -156,4 +156,8 @@ pkt_status_code pkt_set_payload(pkt_t*,
  */
 pkt_status_code pkt_set_crc2(pkt_t*, const uint32_t crc2);
 
+pkt_t* pkt_new_fec(const pkt_t* pkts[4]);
+
+pkt_t* pkt_from_fec(const pkt_t* pkt_fec, const pkt_t* pkts[3]);
+
 #endif /* __PACKET_INTERFACE_H_ */

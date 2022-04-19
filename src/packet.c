@@ -272,3 +272,35 @@ pkt_status_code pkt_set_payload(pkt_t* pkt,
 
     return PKT_OK;
 }
+
+pkt_t* pkt_new_fec(const pkt_t* pkts[4])
+{
+    pkt_t* pkt_fec = pkt_new();
+    if (!pkt_fec)
+        return NULL;
+
+    char fec_payload[MAX_PAYLOAD_SIZE] = { 0 };
+    uint16_t fec_length = 0;
+
+    for (size_t i = 0; i < 4; i++) {
+        uint16_t current_pkt_length = pkt_get_length(pkts[i]);
+        char* current_pkt_payload = pkt_get_payload(pkts[i]);
+
+        fec_length ^= current_pkt_length;
+        for (size_t i = 0; i < MAX_PAYLOAD_SIZE; i++) {
+            if (i < current_pkt_length)
+                fec_payload[i] ^= current_pkt_payload[i];
+            else
+                fec_payload[i] ^= 0;
+        }
+    }
+
+    pkt_set_length(pkt_fec, fec_length);
+    pkt_set_payload(pkt_fec, fec_payload, MAX_PAYLOAD_SIZE);
+
+    return pkt_fec;
+}
+
+pkt_t* pkt_from_fec(const pkt_t* pkt_fec, const pkt_t* pkts[3])
+{
+}
