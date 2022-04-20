@@ -32,9 +32,6 @@ PHONY							:= all clean debug zip $(SENDER) $(RECEIVER) $(TEST) tests
 
 all: $(SENDER) $(RECEIVER)
 
-chat: $(COMMON_OBJECTS)
-	$(CC) $(CFLAGS) -o $@ $^ src/chat.c $(LDFLAGS)
-
 $(SENDER): $(SENDER_OBJECTS) $(COMMON_OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
@@ -52,7 +49,7 @@ tests: all install_dependencies $(TEST)
 
 # By default, logs are disabled. But you can enable them with the debug target.
 debug: CFLAGS += $(DEBUG_FLAGS)
-debug: clean all chat $(TEST)
+debug: clean all $(TEST)
 
 install_dependencies:
 	./install_dependencies.sh
@@ -70,7 +67,7 @@ zip: clean
 
 
 clean:
-	@$(RM) -rv src/*.o tests/*.o $(SENDER) $(RECEIVER) $(TEST) chat logs/
+	@$(RM) -rv src/*.o tests/*.o $(SENDER) $(RECEIVER) $(TEST) logs/
 
 .PHONY = $(PHONY)
 
