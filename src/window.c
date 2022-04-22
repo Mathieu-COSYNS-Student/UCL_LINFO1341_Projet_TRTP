@@ -322,7 +322,9 @@ void window_update_from_received_pkt(window_t* window, pkt_t* pkt, statistics_t*
                     if (element->status != PKT_ACK_OK)
                         element->status = PKT_TRUNCATED;
                 }
-                update_stats_rtt(0, statistics);
+                uint32_t timestamp = pkt_get_timestamp(pkt);
+                long time = get_time_in_milliseconds();
+                update_stats_rtt(time - timestamp, statistics);
                 return;
             }
         } else if (window->type == RECV_WINDOW) {
