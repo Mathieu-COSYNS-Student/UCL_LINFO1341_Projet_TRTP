@@ -65,9 +65,11 @@ bool write_file(FILE* output, window_t* recv_window)
 bool trtp_send(const int sfd, window_t* send_window, window_t* recv_window, statistics_t* statistics)
 {
     pkt_t* pkt = NULL;
+    bool from_window = false;
     pkt = next_pkt(recv_window, statistics); // Return ACK or NACK
     if (!pkt) {
         pkt = next_pkt(send_window, statistics); // Return DATA or FEC
+        from_window = true;
     }
     if (!pkt)
         return true;
@@ -78,6 +80,7 @@ bool trtp_send(const int sfd, window_t* send_window, window_t* recv_window, stat
 
     if (ret != PKT_OK) {
         ERROR("Packet encoding failed. status=%d", ret);
+        pkt_del(pkt);
         return false;
     }
 
@@ -87,6 +90,14 @@ bool trtp_send(const int sfd, window_t* send_window, window_t* recv_window, stat
 
     if (send_len < 0) {
         ERROR("Couldn't send to sfd: %s", strerror(errno));
+        pkt_del(pkt);
+        if (from_window) {
+            int sleep_time = 2 << send_window->connection_retry_attempt;
+            INFO("sleeping for %d seconds", sleep_time);
+            sleep(sleep_time);
+            send_window->connection_retry_attempt++;
+            return send_window->is_new_connection && send_window->connection_retry_attempt < 5;
+        }
         return false;
     }
 

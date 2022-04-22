@@ -39,6 +39,8 @@ typedef struct {
     long shutdown_time;
     bool read_finished;
     bool write_finished;
+    bool is_new_connection;
+    uint8_t connection_retry_attempt;
 } window_t;
 
 window_t* window_new(window_type type, uint8_t initial_capacity);

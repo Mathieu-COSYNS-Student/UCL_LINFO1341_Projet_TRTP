@@ -15,6 +15,8 @@ window_t* window_new(window_type type, uint8_t initial_capacity)
     if (window) {
         window->type = type;
         window->shutdown_time = -1;
+        window->is_new_connection = true;
+        window->connection_retry_attempt = 0;
         window->queue = queue_new(sizeof(pkt_window_element), initial_capacity);
         if (!window->queue) {
             free(window);
