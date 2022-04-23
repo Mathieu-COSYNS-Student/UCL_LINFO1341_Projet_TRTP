@@ -204,9 +204,6 @@ const char* pkt_get_payload(const pkt_t* pkt)
 
 uint32_t pkt_get_crc2(const pkt_t* pkt)
 {
-    if (pkt->length == 0) {
-        return 0;
-    }
     return ntohl(pkt->crc2);
 }
 
@@ -318,6 +315,7 @@ pkt_t* pkt_new_fec(const pkt_t* pkts[4])
         return NULL;
 
     pkt_set_type(fec, PTYPE_FEC);
+    pkt_set_seqnum(fec, pkt_get_seqnum(pkts[0]));
 
     return fec;
 }

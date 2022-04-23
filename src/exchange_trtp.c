@@ -15,7 +15,7 @@
 #define SFD_IN 0
 #define SFD_OUT 1
 
-bool read_file(FILE* input, window_t* send_window)
+bool read_file(FILE* input, window_t* send_window, bool fec_enabled)
 {
     char buffer[MAX_PAYLOAD_SIZE];
 
@@ -34,7 +34,7 @@ bool read_file(FILE* input, window_t* send_window)
 
         DEBUG("%3d byte(s) read from input", nb_read);
 
-        if (!window_add_data_pkt(send_window, buffer, nb_read)) {
+        if (!window_add_data_pkt(send_window, buffer, nb_read, fec_enabled)) {
             ERROR("Attempt to add data pkt to a full window");
             return false;
         }
@@ -224,11 +224,7 @@ void exchange_trtp(const int sfd, FILE* input, FILE* output, const trtp_options_
             if (input_poll_index != -1 && fds[input_poll_index].revents & POLLIN) {
                 fds[input_poll_index].revents = 0;
 
-                if (options->fec_enabled) {
-                    window_add_fec_pkt_if_needed(send_window);
-                }
-
-                if (!read_file(input, send_window)) {
+                if (!read_file(input, send_window, options->fec_enabled)) {
                     stop = true;
                 }
             }

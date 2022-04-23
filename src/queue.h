@@ -12,6 +12,8 @@ void queue_del(queue_t* queue);
 
 bool queue_resize(queue_t* queue, size_t capacity);
 
+bool queue_clear(queue_t* queue);
+
 size_t queue_get_capacity(queue_t* queue);
 
 size_t queue_get_size(queue_t* queue);

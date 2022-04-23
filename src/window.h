@@ -41,6 +41,9 @@ typedef struct {
     bool write_finished;
     bool is_new_connection;
     uint8_t connection_retry_attempt;
+    uint8_t last_sent_seqnum;
+    queue_t* fec_builder_queue;
+    queue_t* fec_queue;
 } window_t;
 
 window_t* window_new(window_type type, uint8_t initial_capacity);
@@ -53,9 +56,7 @@ bool window_closed(window_t* window);
 
 pkt_t* next_pkt(window_t* window, statistics_t* statistics);
 
-bool window_add_data_pkt(window_t* window, char* buffer, size_t buffer_len);
-
-bool window_add_fec_pkt_if_needed(window_t* window);
+bool window_add_data_pkt(window_t* window, char* buffer, size_t buffer_len, bool fec_enabled);
 
 pkt_t* window_slide_if_possible(window_t* window, uint8_t shift);
 

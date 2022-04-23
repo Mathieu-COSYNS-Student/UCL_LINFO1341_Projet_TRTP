@@ -63,6 +63,14 @@ bool queue_resize(queue_t* queue, size_t capacity)
     return true;
 }
 
+bool queue_clear(queue_t* queue)
+{
+    queue->size = 0;
+    memset((char*)queue->items, 0, queue->nmemb * queue->capacity);
+
+    return true;
+}
+
 size_t queue_get_capacity(queue_t* queue)
 {
     if (!queue)

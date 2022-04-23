@@ -19,8 +19,20 @@ window_t* window_new(window_type type, uint8_t initial_capacity)
         window->connection_retry_attempt = 0;
         window->queue = queue_new(sizeof(pkt_window_element), initial_capacity);
         if (!window->queue) {
-            free(window);
+            window_del(window);
             return NULL;
+        }
+        if (type == SEND_WINDOW) {
+            window->fec_builder_queue = queue_new(sizeof(pkt_t), 3);
+            if (!window->fec_builder_queue) {
+                window_del(window);
+                return NULL;
+            }
+            window->fec_queue = queue_new(sizeof(pkt_t), (initial_capacity / 4) + 1);
+            if (!window->fec_queue) {
+                window_del(window);
+                return NULL;
+            }
         }
     }
     return window;
@@ -32,6 +44,8 @@ void window_del(window_t* window)
         return;
 
     queue_del(window->queue);
+    queue_del(window->fec_builder_queue);
+    queue_del(window->fec_queue);
     free(window);
 }
 
@@ -87,7 +101,25 @@ bool window_closed(window_t* window)
     return !window_is_valid(window) || (window->read_finished && window->write_finished);
 }
 
-bool window_add_data_pkt(window_t* window, char* buffer, size_t buffer_len)
+void window_add_fec_pkt_from_data_pkt(window_t* window, pkt_t* pkt)
+{
+    if (queue_is_full(window->fec_builder_queue)) {
+        pkt_t* pkts[4];
+        int i = 0;
+
+        while (!queue_is_empty(window->fec_builder_queue)) {
+            pkts[i] = queue_dequeue(window->fec_builder_queue);
+            i++;
+        }
+        pkts[i] = pkt;
+
+        queue_enqueue(window->fec_queue, pkt_new_fec((const pkt_t**)pkts));
+    } else {
+        queue_enqueue(window->fec_builder_queue, pkt);
+    }
+}
+
+bool window_add_data_pkt(window_t* window, char* buffer, size_t buffer_len, bool fec_enabled)
 {
     if (!window_is_valid(window))
         return false;
@@ -108,28 +140,13 @@ bool window_add_data_pkt(window_t* window, char* buffer, size_t buffer_len)
 
     bool packet_added = queue_enqueue(window->queue, &element);
 
+    if (packet_added && fec_enabled) {
+        window_add_fec_pkt_from_data_pkt(window, pkt);
+    }
+
     pkt_del(pkt);
 
     return packet_added;
-}
-
-bool window_add_fec_pkt_if_needed(window_t* window)
-{
-    if (window->type != SEND_WINDOW)
-        return false;
-    if (window_is_full(window)) {
-        return false;
-    }
-
-    bool can_calc_fec = false;
-
-    if (can_calc_fec) {
-        // Create fec pkt
-
-        // return window_add_pkt(window, pkt);
-    }
-
-    return false;
 }
 
 pkt_t* window_slide_if_possible(window_t* window, uint8_t shift)
@@ -169,7 +186,7 @@ pkt_t* window_slide_if_possible(window_t* window, uint8_t shift)
     return pkt;
 }
 
-pkt_t* build_next_pkt_send_window(pkt_window_element* element)
+pkt_t* build_next_pkt_send_window(window_t* window, pkt_window_element* element)
 {
     long time = get_time_in_milliseconds();
     pkt_set_timestamp(&element->pkt, time);
@@ -177,11 +194,17 @@ pkt_t* build_next_pkt_send_window(pkt_window_element* element)
     pkt_t* pkt = pkt_new();
     memcpy(pkt, &element->pkt, sizeof(pkt_t));
 
+    window->last_sent_seqnum = pkt_get_seqnum(pkt);
+
     return pkt;
 }
 
 pkt_t* next_pkt_send_window(window_t* window, statistics_t* statistics)
 {
+    if (!queue_is_empty(window->fec_queue) && window->last_sent_seqnum == pkt_get_seqnum(queue_peek(window->fec_queue)) + 3) {
+        return queue_dequeue(window->fec_queue);
+    }
+
     bool waiting_for_ack;
     for (size_t i = 0; i < fminl(window->peer_size, queue_get_size(window->queue)); i++) {
         pkt_window_element* element = queue_get_item(window->queue, i);
@@ -191,7 +214,7 @@ pkt_t* next_pkt_send_window(window_t* window, statistics_t* statistics)
             }
 
             element->status = PKT_NEED_ACK;
-            return build_next_pkt_send_window(element);
+            return build_next_pkt_send_window(window, element);
         } else if (element->status == PKT_NEED_ACK) {
             waiting_for_ack = true;
             long time = get_time_in_milliseconds();
@@ -201,7 +224,7 @@ pkt_t* next_pkt_send_window(window_t* window, statistics_t* statistics)
                 DEBUG("Retransmission timer expired for packet #%d", pkt_get_seqnum(&element->pkt));
                 statistics->packet_retransmitted++;
 
-                return build_next_pkt_send_window(element);
+                return build_next_pkt_send_window(window, element);
             }
         } else {
             if (waiting_for_ack && element->status == PKT_ACK_OK) {
@@ -365,5 +388,6 @@ void window_update_from_received_pkt(window_t* window, pkt_t* pkt, statistics_t*
         }
     }
 
+    DEBUG("Packet no processed");
     statistics->packet_ignored++;
 }
