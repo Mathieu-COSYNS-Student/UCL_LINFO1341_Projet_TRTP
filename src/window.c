@@ -332,8 +332,12 @@ void window_update_from_received_pkt(window_t* window, pkt_t* pkt, statistics_t*
                 window->peer_size = peer_size;
 
                 if (type == PTYPE_ACK) {
+                    uint32_t timestamp = get_time_in_milliseconds();
                     for (int i = 0; i <= window_index; i++) {
-                        ((pkt_window_element*)queue_get_item(window->queue, i))->status = PKT_ACK_OK;
+                        pkt_window_element* element = queue_get_item(window->queue, i);
+                        uint32_t send_timestamp = pkt_get_timestamp(&element->pkt);
+                        element->status = PKT_ACK_OK;
+                        update_stats_rtt(timestamp - send_timestamp, statistics);
                     }
                     free(window_slide_if_possible(window, window_index + 1));
 
@@ -345,9 +349,6 @@ void window_update_from_received_pkt(window_t* window, pkt_t* pkt, statistics_t*
                     if (element->status != PKT_ACK_OK)
                         element->status = PKT_TRUNCATED;
                 }
-                uint32_t timestamp = pkt_get_timestamp(pkt);
-                long time = get_time_in_milliseconds();
-                update_stats_rtt(time - timestamp, statistics);
                 return;
             }
         } else if (window->type == RECV_WINDOW) {
