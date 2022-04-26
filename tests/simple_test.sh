@@ -72,11 +72,13 @@ echo "-------------------------------------------" >> "$DEBUG_FILE"
 netstat -nlptu >> "$DEBUG_FILE" 2>/dev/null
 
 # On démarre le transfert
+sender_start_seconds=`date -u +"%s.%N"`
 if ! $valgrind_sender ./sender ::1 $PORT1 < "$INPUT_FILE" 2> "$SENDER_LOG" ; then
   echo "Crash du sender!  <------------------------------" >> "$INFO_FILE"
   # cat "$SENDER_LOG"
   err=1  # On enregistre l'erreur
 fi
+sender_end_seconds=`date -u +"%s.%N"`
 
 sleep 6 & # On attend 6 seconde que le receiver finisse
 sleep_pid=$!
@@ -109,5 +111,6 @@ if [[ `md5sum "$INPUT_FILE" | awk '{print $1}'` != `md5sum "$OUTPUT_FILE" | awk 
   exit 1
 else
   echo "Le transfert est réussi!" >> "$INFO_FILE"
+  date -u -d "0 $sender_end_seconds sec - $sender_start_seconds sec" +"%H:%M:%S.%N" >> "$INFO_FILE"
   exit ${err:-0}  # En cas d'erreurs avant, on renvoie le code d'erreur
 fi
